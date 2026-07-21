@@ -100,6 +100,9 @@ class Compactor:
                 self.consecutive_failures, self._session_id,
             )
             return None
+        # package-e: 压缩前先缓存原始消息数，用于 ReplacementRecord，
+        # 必须在 context.messages 就地替换之前读取，否则记录的会是替换后的 2 条
+        original_message_count = len(context.messages)
         result = await self.compact_messages(context.messages, provider, focus=focus)
         if result is None:
             return None
@@ -109,6 +112,21 @@ class Compactor:
             {"role": "assistant", "content": "Understood, I'll continue from this summary."},
         ]
         self._write_summary(result.summary_text)
+        # package-e: 写细粒度替换记录，便于审计与重建
+        from kama_claude.core.session.replacement import (
+            ReplacementRecord,
+            write_replacement_record,
+        )
+        write_replacement_record(
+            self._session_dir,
+            ReplacementRecord(
+                ts=_now(),
+                original_message_count=original_message_count,
+                original_tokens=result.original_token_estimate,
+                summary_text=result.summary_text,
+                summary_tokens=result.summary_tokens,
+            ),
+        )
         await self._bus.publish(
             ContextCompactedEvent(
                 session_id=self._session_id,
