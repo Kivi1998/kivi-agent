@@ -17,6 +17,8 @@ from kama_claude.core.llm.provider import AnthropicProvider
 from kama_claude.core.loop import AgentLoop
 from kama_claude.core.mcp.server import McpServerManager
 from kama_claude.core.memory.loader import load_context_file
+from kama_claude.core.memory.recall import build_memory_prompt
+from kama_claude.core.memory.store import MemoryStore
 from kama_claude.core.permissions.manager import PermissionManager
 from kama_claude.core.runs import RUNS_DIR, new_run_id
 from kama_claude.core.session.checkpoint import CheckpointData, CheckpointStore
@@ -171,6 +173,11 @@ class AgentRunner:
         for h in self._extra_handlers:
             bus.subscribe(h)
 
+        # package-e: 跨 session 长期记忆装配点（agent: package-e）——
+        # 从 ~/.kama/memory 读取所有记忆条目并渲染成可注入的 system prompt 片段
+        memory_store = MemoryStore(Path("~/.kama/memory").expanduser())
+        long_term_memory = build_memory_prompt(memory_store)
+
         context = ExecutionContext(
             run_id=run_id,
             goal=goal,
@@ -179,6 +186,7 @@ class AgentRunner:
             session_notes=notes,
             global_context=global_ctx,
             project_context=project_ctx,
+            long_term_memory=long_term_memory,
             system_prompt_override=system_prompt_override,
         )
         prefill_len = len(history)
