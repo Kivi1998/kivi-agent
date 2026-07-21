@@ -198,6 +198,10 @@ class AgentRunner:
                 from kama_claude.core.tools.builtin.team_message import TeamMessageTool
                 mailbox_root = child_runs_dir or self._runs_dir
                 registry.register(TeamMessageTool(mailbox_root=mailbox_root))
+            # team_status（agent: package-f）：只读状态查询，复用 team_manager
+            if _ok("team_status"):
+                from kama_claude.core.tools.builtin.team_status import TeamStatusTool
+                registry.register(TeamStatusTool(self._team_manager))
         if self._mcp_manager is not None:
             for mcp_tool in self._mcp_manager.get_tools():
                 if _ok(mcp_tool.name):
