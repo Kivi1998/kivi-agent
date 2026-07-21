@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 
 from kama_claude.core.config import get_config
-from kama_claude.tui.app import KamaTuiApp
+from kama_claude.tui.app import run
 
 _DEFAULT_TUI_LOG = "~/.kama/logs/tui.log"
 
@@ -43,8 +43,9 @@ def main() -> None:
 
     config = get_config()
     _setup_logging(config.logging.level)
-    app = KamaTuiApp(config.host, config.port, replay_run_id=args.replay)
-    app.run()
+    # 唯一的 KamaTuiApp 构造入口在 app.run()；这里不再重复构造，
+    # 避免出现两处独立创建 KamaTuiApp、其中一处漏传新增构造参数的问题
+    run(config, replay_run_id=args.replay)
 
 
 if __name__ == "__main__":
