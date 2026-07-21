@@ -60,6 +60,10 @@ class McpServerManager:
             await client.connect_stdio(cfg.command, cfg.args, cfg.env or None)
         elif cfg.transport == "tcp":
             await client.connect_tcp(cfg.host, cfg.port)
+        elif cfg.transport == "http":
+            if not cfg.url:
+                raise ValueError(f"mcp server '{cfg.name}': http transport requires 'url'")
+            await client.connect_http(cfg.url, cfg.env or None)  # env 复用作 HTTP headers，见 Task G4
         else:
             raise ValueError(f"mcp server '{cfg.name}': unknown transport '{cfg.transport}'")
         return client
