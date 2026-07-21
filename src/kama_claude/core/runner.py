@@ -26,6 +26,7 @@ from kama_claude.core.subagent.tool import AgentResultTool, SpawnAgentTool
 from kama_claude.core.task.manager import TaskManager
 from kama_claude.core.tools.builtin import (
     BashTool,
+    ExitPlanModeTool,
     ListDirTool,
     NoteSaveTool,
     ReadFileTool,
@@ -99,6 +100,9 @@ class AgentRunner:
         for t in [ReadFileTool(), BashTool(), WriteFileTool(), ListDirTool()]:
             if _ok(t.name):
                 registry.register(t)
+        # exit_plan_mode（agent: package-d）
+        if _ok("exit_plan_mode"):
+            registry.register(ExitPlanModeTool())
         for t in [
             TaskCreateTool(task_manager),
             TaskUpdateTool(task_manager),
