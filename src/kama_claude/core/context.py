@@ -13,6 +13,8 @@ class ExecutionContext:
     session_notes: str = ""
     global_context: str = ""
     project_context: str = ""
+    # package-e: 跨 session 长期记忆，由 runner 装配时通过 build_memory_prompt 注入
+    long_term_memory: str = ""
     messages: list[dict[str, Any]] = field(default_factory=list)
     step: int = 0
     status: str = "running"  # "running" | "success" | "failed"
@@ -41,6 +43,8 @@ class ExecutionContext:
                 + self.session_notes.strip()
                 + "\n\nRemember important durable facts by calling note_save."
             )
+        if self.long_term_memory.strip():
+            parts.append("\n\n## Long-term Memory\n" + self.long_term_memory.strip())
         return "".join(parts)
 
     # 将 LLM 响应的 content blocks 追加为 assistant 消息

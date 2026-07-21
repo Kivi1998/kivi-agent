@@ -19,8 +19,11 @@ from kama_claude.core.llm.factory import build_provider
 from kama_claude.core.loop import AgentLoop
 from kama_claude.core.mcp.server import McpServerManager
 from kama_claude.core.memory.loader import load_context_file
+from kama_claude.core.memory.recall import build_memory_prompt
+from kama_claude.core.memory.store import MemoryStore
 from kama_claude.core.permissions.manager import PermissionManager
 from kama_claude.core.runs import RUNS_DIR, new_run_id
+from kama_claude.core.session.checkpoint import CheckpointData, CheckpointStore
 from kama_claude.core.session.model import Session
 from kama_claude.core.session.store import SessionStore
 from kama_claude.core.subagent.registry import BackgroundTaskRegistry
@@ -213,6 +216,11 @@ class AgentRunner:
         for h in self._extra_handlers:
             bus.subscribe(h)
 
+        # package-e: 跨 session 长期记忆装配点（agent: package-e）——
+        # 从 ~/.kama/memory 读取所有记忆条目并渲染成可注入的 system prompt 片段
+        memory_store = MemoryStore(Path("~/.kama/memory").expanduser())
+        long_term_memory = build_memory_prompt(memory_store)
+
         context = ExecutionContext(
             run_id=run_id,
             goal=goal,
@@ -221,6 +229,7 @@ class AgentRunner:
             session_notes=notes,
             global_context=global_ctx,
             project_context=project_ctx,
+            long_term_memory=long_term_memory,
             system_prompt_override=system_prompt_override,
         )
         prefill_len = len(history)
@@ -266,6 +275,11 @@ class AgentRunner:
                     else run_path
                 )
                 compactor = Compactor(bus, session_dir, session_id_str)
+                # package-e: 运行检查点装配点（agent: package-e）—— 复用 SessionStore 的根目录
+                # 每个 run 的 checkpoint.json 写到 <root>/<sid>/runs/<run_id>/checkpoint.json
+                checkpoint_store: CheckpointStore | None = None
+                if session is not None and store is not None:
+                    checkpoint_store = CheckpointStore(store.session_dir(session.id).parent)
                 loop = AgentLoop(
                     provider, registry, bus,
                     permission_manager=self._permission_manager,
@@ -273,6 +287,7 @@ class AgentRunner:
                     compact_threshold=self._config.compaction.auto_threshold,
                     session_id=session_id_str,
                     hook_engine=self._hook_engine,
+                    checkpoint_store=checkpoint_store,
                 )
                 await loop.run(context)
             except asyncio.CancelledError:
@@ -295,6 +310,11 @@ class AgentRunner:
                     ts=_now(),
                 )
             )
+
+            # package-e: 异步抽取长期记忆（agent: package-e）——
+            # fire-and-forget；extract_memories 内部已 try/except 兜底，不影响主流程返回
+            from kama_claude.core.memory.extractor import extract_memories
+            asyncio.ensure_future(extract_memories(context.messages, provider, memory_store))
 
         if session is not None and store is not None:
             store.append_messages(session.id, context.messages[prefill_len:], run_id=run_id)

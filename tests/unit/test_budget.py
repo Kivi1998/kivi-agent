@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from kama_claude.core.compact.budget import truncate_tool_results
+from pathlib import Path
+
+from kama_claude.core.compact.budget import persist_and_truncate_tool_results, truncate_tool_results
 
 
 def _make_tool_result_msg(content: str) -> dict:
@@ -74,3 +76,46 @@ def test_assistant_message_untouched() -> None:
     msgs = [{"role": "assistant", "content": text}]
     result = truncate_tool_results(msgs, limit=8000, keep=4000)
     assert result[0]["content"] == text
+
+
+# 功能：验证超限的 tool_result 内容被落盘到 session_dir/tool_outputs/ 下，对话里替换成引用占位符
+# 设计：构造一条超过 limit 的 tool_result 消息，断言落盘文件内容和原文完全一致（不丢数据），
+#      对话里的占位符文本包含落盘文件的相对路径，确保可以顺藤摸瓜找回完整内容
+def test_oversized_tool_result_is_persisted_with_placeholder(tmp_path: Path) -> None:
+    long_text = "x" * 20_000
+    messages = [{"role": "user", "content": [
+        {"type": "tool_result", "tool_use_id": "t1", "content": long_text}
+    ]}]
+    result = persist_and_truncate_tool_results(messages, tmp_path, limit=8_000)
+    block = result[0]["content"][0]
+    assert "tool_outputs/" in block["content"]
+    assert "20000" not in block["content"] or "chars" in block["content"]
+    persisted_files = list((tmp_path / "tool_outputs").glob("*.txt"))
+    assert len(persisted_files) == 1
+    assert persisted_files[0].read_text(encoding="utf-8") == long_text
+
+
+# 功能：验证未超限的 tool_result 原样保留，不产生落盘文件
+# 设计：短文本消息走同一函数，断言内容不变且 tool_outputs 目录不存在，
+#      覆盖"没有超限就不该有任何副作用"这个边界
+def test_short_tool_result_is_untouched(tmp_path: Path) -> None:
+    messages = [{"role": "user", "content": [
+        {"type": "tool_result", "tool_use_id": "t1", "content": "short"}
+    ]}]
+    result = persist_and_truncate_tool_results(messages, tmp_path, limit=8_000)
+    assert result[0]["content"][0]["content"] == "short"
+    assert not (tmp_path / "tool_outputs").exists()
+
+
+# 功能：验证超限 tool_result 的占位符里带可追溯路径和字符数
+# 设计：构造长文本调用，断言占位符同时包含 tool_outputs 路径和省略字符数信息
+def test_placeholder_includes_path_and_omitted_size(tmp_path: Path) -> None:
+    long_text = "y" * 12_345
+    messages = [{"role": "user", "content": [
+        {"type": "tool_result", "tool_use_id": "t1", "content": long_text}
+    ]}]
+    result = persist_and_truncate_tool_results(messages, tmp_path, limit=8_000)
+    placeholder = result[0]["content"][0]["content"]
+    assert "tool_outputs/" in placeholder
+    assert "12345" in placeholder
+    assert "chars omitted" in placeholder

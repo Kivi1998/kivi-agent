@@ -50,3 +50,12 @@ def test_session_notes_hint() -> None:
     ctx = _make_ctx(session_notes="some note")
     prompt = ctx.system_prompt("BASE")
     assert "note_save" in prompt
+
+
+# 功能：验证 long_term_memory 非空时出现在 system prompt 中
+# 设计：设置 long_term_memory 字段，断言 prompt 含 "## Long-term Memory" 标题
+def test_long_term_memory_layer() -> None:
+    ctx = _make_ctx(long_term_memory="不要啰嗦")
+    prompt = ctx.system_prompt("BASE")
+    assert "## Long-term Memory" in prompt
+    assert "不要啰嗦" in prompt

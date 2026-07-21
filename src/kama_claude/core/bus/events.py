@@ -150,6 +150,15 @@ class ContextCompactedEvent(BaseModel):
     ts: str
 
 
+class CompactionSkippedEvent(BaseModel):
+    type: Literal["compaction.skipped"] = "compaction.skipped"
+    session_id: str
+    run_id: str
+    reason: str  # "circuit_open" | "llm_call_failed" | "empty_summary"
+    consecutive_failures: int
+    ts: str
+
+
 class PermissionRequestedEvent(BaseModel):
     type: Literal["permission.requested"] = "permission.requested"
     run_id: str
@@ -223,6 +232,7 @@ Event = Annotated[
     | SessionResumedEvent
     | SessionClosedEvent
     | ContextCompactedEvent
+    | CompactionSkippedEvent
     | PermissionRequestedEvent
     | PermissionGrantedEvent
     | PermissionDeniedEvent

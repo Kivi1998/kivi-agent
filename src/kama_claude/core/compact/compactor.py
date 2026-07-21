@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from kama_claude.core.bus.events import ContextCompactedEvent
+from kama_claude.core.bus.events import CompactionSkippedEvent, ContextCompactedEvent
 from kama_claude.core.events.bus import EventBus
 
 if TYPE_CHECKING:
@@ -63,11 +63,20 @@ class CompactionResult:
 
 
 class Compactor:
+    # 连续失败多少次后打开熔断（package-e: 加熔断）
+    _MAX_CONSECUTIVE_FAILURES = 3
+
     # 初始化压缩器，绑定事件总线、session 目录和 session ID
     def __init__(self, bus: EventBus, session_dir: Path, session_id: str) -> None:
         self._bus = bus
         self._session_dir = session_dir
         self._session_id = session_id
+        # 连续压缩失败计数（package-e: 加熔断）；成功压缩会清零
+        self.consecutive_failures = 0
+
+    # 返回是否已达到连续失败阈值，达到时调用方应跳过本次压缩
+    def is_circuit_open(self) -> bool:
+        return self.consecutive_failures >= self._MAX_CONSECUTIVE_FAILURES
 
     # 压缩 ExecutionContext.messages，就地替换消息列表并写 summary 文件
     async def compact(
@@ -76,6 +85,24 @@ class Compactor:
         provider: LLMProvider,
         focus: str = "",
     ) -> CompactionResult | None:
+        if self.is_circuit_open():
+            await self._bus.publish(
+                CompactionSkippedEvent(
+                    session_id=self._session_id,
+                    run_id=context.run_id,
+                    reason="circuit_open",
+                    consecutive_failures=self.consecutive_failures,
+                    ts=_now(),
+                )
+            )
+            logger.warning(
+                "compactor: circuit open (consecutive_failures=%d), skipping compaction session=%s",
+                self.consecutive_failures, self._session_id,
+            )
+            return None
+        # package-e: 压缩前先缓存原始消息数，用于 ReplacementRecord，
+        # 必须在 context.messages 就地替换之前读取，否则记录的会是替换后的 2 条
+        original_message_count = len(context.messages)
         result = await self.compact_messages(context.messages, provider, focus=focus)
         if result is None:
             return None
@@ -85,6 +112,21 @@ class Compactor:
             {"role": "assistant", "content": "Understood, I'll continue from this summary."},
         ]
         self._write_summary(result.summary_text)
+        # package-e: 写细粒度替换记录，便于审计与重建
+        from kama_claude.core.session.replacement import (
+            ReplacementRecord,
+            write_replacement_record,
+        )
+        write_replacement_record(
+            self._session_dir,
+            ReplacementRecord(
+                ts=_now(),
+                original_message_count=original_message_count,
+                original_tokens=result.original_token_estimate,
+                summary_text=result.summary_text,
+                summary_tokens=result.summary_tokens,
+            ),
+        )
         await self._bus.publish(
             ContextCompactedEvent(
                 session_id=self._session_id,
@@ -135,15 +177,21 @@ class Compactor:
             )
         except Exception:
             logger.exception("compactor: LLM call failed, skipping compaction")
+            # package-e: 加熔断 — 任何一次失败都计入连续失败计数
+            self.consecutive_failures += 1
             return None
 
         summary_text = response.text.strip()
         if not summary_text:
             logger.warning("compactor: LLM returned empty summary, skipping compaction")
+            # package-e: 加熔断 — 空摘要同样是失败，计入计数
+            self.consecutive_failures += 1
             return None
 
         summary_tokens = response.usage.output_tokens if response.usage else len(summary_text) // 4
 
+        # package-e: 加熔断 — 成功路径清零失败计数
+        self.consecutive_failures = 0
         return CompactionResult(
             summary_text=summary_text,
             original_token_estimate=original_estimate,
