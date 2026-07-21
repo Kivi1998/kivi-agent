@@ -264,6 +264,11 @@ class AgentRunner:
                 )
             )
 
+            # package-e: 异步抽取长期记忆（agent: package-e）——
+            # fire-and-forget；extract_memories 内部已 try/except 兜底，不影响主流程返回
+            from kama_claude.core.memory.extractor import extract_memories
+            asyncio.ensure_future(extract_memories(context.messages, provider, memory_store))
+
         if session is not None and store is not None:
             store.append_messages(session.id, context.messages[prefill_len:], run_id=run_id)
 
