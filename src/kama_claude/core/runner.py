@@ -109,6 +109,11 @@ class AgentRunner:
         grep_tool = GrepTool()
         if _ok(grep_tool.name):
             registry.register(grep_tool)
+        # edit_file（agent: minimal-loop）
+        from kama_claude.core.tools.builtin.edit_file import EditFileTool
+        edit_file_tool = EditFileTool()
+        if _ok(edit_file_tool.name):
+            registry.register(edit_file_tool)
         for t in [
             TaskCreateTool(task_manager),
             TaskUpdateTool(task_manager),
