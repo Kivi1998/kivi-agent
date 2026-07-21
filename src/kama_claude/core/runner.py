@@ -13,7 +13,7 @@ from kama_claude.core.context import ExecutionContext
 from kama_claude.core.events.bus import EventBus, EventHandler
 from kama_claude.core.events.writer import EventWriter
 from kama_claude.core.llm.base import LLMProvider
-from kama_claude.core.llm.provider import AnthropicProvider
+from kama_claude.core.llm.factory import build_provider
 from kama_claude.core.loop import AgentLoop
 from kama_claude.core.mcp.server import McpServerManager
 from kama_claude.core.memory.loader import load_context_file
@@ -96,9 +96,44 @@ class AgentRunner:
             return allowed is None or name in allowed
 
         registry = ToolRegistry()
-        for t in [ReadFileTool(), BashTool(), WriteFileTool(), ListDirTool()]:
+        for t in [ReadFileTool(), WriteFileTool(), ListDirTool()]:
             if _ok(t.name):
                 registry.register(t)
+        # bash（agent: minimal-loop）: 构造时注入平台沙箱（macOS Seatbelt / Linux bwrap），不允许网络
+        from kama_claude.core.sandbox import create_sandbox
+        bash_tool = BashTool(sandbox=create_sandbox(), allow_write=[str(child_runs_dir)])
+        if _ok(bash_tool.name):
+            registry.register(bash_tool)
+        # glob（agent: minimal-loop）
+        from kama_claude.core.tools.builtin.glob_tool import GlobTool
+        glob_tool = GlobTool()
+        if _ok(glob_tool.name):
+            registry.register(glob_tool)
+        # grep（agent: minimal-loop）
+        from kama_claude.core.tools.builtin.grep_tool import GrepTool
+        grep_tool = GrepTool()
+        if _ok(grep_tool.name):
+            registry.register(grep_tool)
+        # edit_file（agent: minimal-loop）
+        from kama_claude.core.tools.builtin.edit_file import EditFileTool
+        edit_file_tool = EditFileTool()
+        if _ok(edit_file_tool.name):
+            registry.register(edit_file_tool)
+        # diff（agent: minimal-loop）
+        from kama_claude.core.tools.builtin.diff_tool import DiffTool
+        diff_tool = DiffTool()
+        if _ok(diff_tool.name):
+            registry.register(diff_tool)
+        # enter_worktree（agent: minimal-loop）
+        from kama_claude.core.tools.builtin.enter_worktree import EnterWorktreeTool
+        enter_worktree_tool = EnterWorktreeTool()
+        if _ok(enter_worktree_tool.name):
+            registry.register(enter_worktree_tool)
+        # exit_worktree（agent: minimal-loop）
+        from kama_claude.core.tools.builtin.exit_worktree import ExitWorktreeTool
+        exit_worktree_tool = ExitWorktreeTool()
+        if _ok(exit_worktree_tool.name):
+            registry.register(exit_worktree_tool)
         for t in [
             TaskCreateTool(task_manager),
             TaskUpdateTool(task_manager),
@@ -188,9 +223,7 @@ class AgentRunner:
 
             cancelled = False
             try:
-                provider: LLMProvider = self._provider or AnthropicProvider(
-                    self._config.llm.default_model
-                )
+                provider: LLMProvider = self._provider or build_provider(self._config)
                 if self._trace is not None:
                     provider = TracingProvider(
                         provider,

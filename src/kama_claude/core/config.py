@@ -35,6 +35,8 @@ class AgentConfig:
 class LlmConfig:
     default_model: str = _DEFAULT_MODEL
     router: str = "static"  # "static" | "rule_based" (S4) | "cost_budget" (S6)
+    provider: str = "anthropic"  # "anthropic" | "openai_compat"
+    openai_base_url: str | None = None
 
 
 @dataclass
@@ -170,7 +172,7 @@ def _apply_toml(config: KamaConfig, data: dict[str, Any]) -> None:
         llm = data["llm"]
         if not isinstance(llm, dict):
             raise SystemExit("Config error: [llm] must be a table")
-        unknown_llm: set[str] = set(llm.keys()) - {"default_model", "router"}
+        unknown_llm: set[str] = set(llm.keys()) - {"default_model", "router", "provider", "openai_base_url"}
         if unknown_llm:
             raise SystemExit(f"Unknown [llm] keys: {', '.join(sorted(unknown_llm))}")
         if "default_model" in llm:
@@ -183,6 +185,16 @@ def _apply_toml(config: KamaConfig, data: dict[str, Any]) -> None:
             if not isinstance(val, str):
                 raise SystemExit("Config error: llm.router must be a string")
             config.llm.router = val
+        if "provider" in llm:
+            val = llm["provider"]
+            if val not in ("anthropic", "openai_compat"):
+                raise SystemExit("Config error: llm.provider must be 'anthropic' or 'openai_compat'")
+            config.llm.provider = val
+        if "openai_base_url" in llm:
+            val = llm["openai_base_url"]
+            if not isinstance(val, str):
+                raise SystemExit("Config error: llm.openai_base_url must be a string")
+            config.llm.openai_base_url = val
 
     if "trace" in data:
         trace = data["trace"]

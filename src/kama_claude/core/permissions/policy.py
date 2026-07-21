@@ -43,6 +43,18 @@ DEFAULT_POLICIES: dict[str, ToolPolicy] = {
     "read_file":  ToolPolicy(default=PermissionDecision.ALLOW),
     "list_dir":   ToolPolicy(default=PermissionDecision.ALLOW),
     "note_save":  ToolPolicy(default=PermissionDecision.ALLOW),
+    # glob（agent: minimal-loop）
+    "glob":       ToolPolicy(default=PermissionDecision.ALLOW),
+    # grep（agent: minimal-loop）
+    "grep":       ToolPolicy(default=PermissionDecision.ALLOW),
+    # edit_file（agent: minimal-loop）
+    "edit_file":  ToolPolicy(default=PermissionDecision.ASK),
+    # diff（agent: minimal-loop）
+    "diff":       ToolPolicy(default=PermissionDecision.ALLOW),
+    # enter_worktree（agent: minimal-loop）
+    "enter_worktree": ToolPolicy(default=PermissionDecision.ALLOW),
+    # exit_worktree（agent: minimal-loop）
+    "exit_worktree":  ToolPolicy(default=PermissionDecision.ASK),
 }
 
 # 未在 DEFAULT_POLICIES 中登记的工具的兜底策略
@@ -55,6 +67,12 @@ _PREVIEW_KEY: dict[str, str] = {
     "write_file": "path",
     "list_dir":   "path",
     "note_save":  "content",
+    # edit_file（agent: minimal-loop）：审批卡片展示被编辑的文件路径
+    "edit_file":  "path",
+    # enter_worktree（agent: minimal-loop）：审批卡片展示任务名
+    "enter_worktree": "name",
+    # exit_worktree（agent: minimal-loop）：审批卡片展示工作树路径
+    "exit_worktree":  "path",
 }
 _PREVIEW_MAX = 60
 
