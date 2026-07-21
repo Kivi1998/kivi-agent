@@ -85,3 +85,16 @@ def test_priority_chain_full(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
     cfg = get_config()
 
     assert cfg.port == 8000
+
+
+# 功能：验证 llm.provider 和 llm.openai_base_url 能从 TOML 正确解析
+# 设计：构造包含 [llm] 新字段的临时 TOML，断言解析后的 KamaConfig.llm 字段值，覆盖新配置项的读取路径
+def test_llm_provider_and_openai_base_url_from_toml(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    config_file = tmp_path / "config.toml"
+    config_file.write_text(
+        '[llm]\nprovider = "openai_compat"\nopenai_base_url = "https://api.example.com/v1"\n'
+    )
+    monkeypatch.setenv("KAMA_CONFIG", str(config_file))
+    cfg = get_config()
+    assert cfg.llm.provider == "openai_compat"
+    assert cfg.llm.openai_base_url == "https://api.example.com/v1"
