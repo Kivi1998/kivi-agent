@@ -114,6 +114,11 @@ class AgentRunner:
         edit_file_tool = EditFileTool()
         if _ok(edit_file_tool.name):
             registry.register(edit_file_tool)
+        # diff（agent: minimal-loop）
+        from kama_claude.core.tools.builtin.diff_tool import DiffTool
+        diff_tool = DiffTool()
+        if _ok(diff_tool.name):
+            registry.register(diff_tool)
         for t in [
             TaskCreateTool(task_manager),
             TaskUpdateTool(task_manager),

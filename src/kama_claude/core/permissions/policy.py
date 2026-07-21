@@ -49,6 +49,8 @@ DEFAULT_POLICIES: dict[str, ToolPolicy] = {
     "grep":       ToolPolicy(default=PermissionDecision.ALLOW),
     # edit_file（agent: minimal-loop）
     "edit_file":  ToolPolicy(default=PermissionDecision.ASK),
+    # diff（agent: minimal-loop）
+    "diff":       ToolPolicy(default=PermissionDecision.ALLOW),
 }
 
 # 未在 DEFAULT_POLICIES 中登记的工具的兜底策略
