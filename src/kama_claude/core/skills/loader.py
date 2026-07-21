@@ -131,3 +131,20 @@ class SkillLoader:
     # 将 $ARGUMENTS 替换为用户传入的参数字符串
     def render_prompt(self, skill: Skill, arguments: str) -> str:
         return skill.system_prompt_template.replace("$ARGUMENTS", arguments)
+
+    # 按关键词搜索 skill：名字命中权重高于描述命中，按分数降序返回最多 limit 个
+    def search(self, query: str, limit: int = 5) -> list[Skill]:
+        q = query.strip().lower()
+        if not q:
+            return []
+        scored: list[tuple[int, Skill]] = []
+        for skill in self.list_all_skills():
+            score = 0
+            if q in skill.name.lower():
+                score += 10
+            if q in skill.description.lower():
+                score += 5
+            if score > 0:
+                scored.append((score, skill))
+        scored.sort(key=lambda pair: pair[0], reverse=True)
+        return [skill for _, skill in scored[:limit]]
