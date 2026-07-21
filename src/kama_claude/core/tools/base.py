@@ -20,6 +20,8 @@ class BaseTool(ABC):
     description: str
     input_schema: dict[str, object]
     params_model: ClassVar[type[BaseModel] | None] = None
+    # 工具分类："read"（只读，可并发）｜"write"（改写文件状态）｜"command"（任意命令执行）｜"other"（默认）
+    category: ClassVar[str] = "other"
 
     # 执行工具调用，返回结果或错误
     @abstractmethod

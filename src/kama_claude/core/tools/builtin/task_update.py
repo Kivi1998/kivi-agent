@@ -9,6 +9,7 @@ from kama_claude.core.tools.base import BaseTool, ToolResult
 
 class TaskUpdateTool(BaseTool):
     name = "task_update"
+    category = "write"
     description = (
         "Update a task's status or dependency list. "
         "Set status to 'in_progress' when starting work on a task, "

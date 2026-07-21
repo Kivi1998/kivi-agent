@@ -55,6 +55,8 @@ DEFAULT_POLICIES: dict[str, ToolPolicy] = {
     "enter_worktree": ToolPolicy(default=PermissionDecision.ALLOW),
     # exit_worktree（agent: minimal-loop）
     "exit_worktree":  ToolPolicy(default=PermissionDecision.ASK),
+    # exit_plan_mode（agent: package-d）
+    "exit_plan_mode": ToolPolicy(default=PermissionDecision.ALLOW),
 }
 
 # 未在 DEFAULT_POLICIES 中登记的工具的兜底策略

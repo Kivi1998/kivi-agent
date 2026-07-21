@@ -12,6 +12,8 @@ from kama_claude.core.config import KamaConfig
 from kama_claude.core.context import ExecutionContext
 from kama_claude.core.events.bus import EventBus, EventHandler
 from kama_claude.core.events.writer import EventWriter
+from kama_claude.core.hooks.engine import HookEngine
+from kama_claude.core.hooks.loader import load_hooks
 from kama_claude.core.llm.base import LLMProvider
 from kama_claude.core.llm.factory import build_provider
 from kama_claude.core.loop import AgentLoop
@@ -26,6 +28,7 @@ from kama_claude.core.subagent.tool import AgentResultTool, SpawnAgentTool
 from kama_claude.core.task.manager import TaskManager
 from kama_claude.core.tools.builtin import (
     BashTool,
+    ExitPlanModeTool,
     ListDirTool,
     NoteSaveTool,
     ReadFileTool,
@@ -75,6 +78,8 @@ class AgentRunner:
         self._mcp_manager = mcp_manager
         # 跨 run 共享的后台 subagent 任务注册表
         self._task_registry = BackgroundTaskRegistry()
+        # 钩子引擎：从配置加载的钩子在工具调用前后执行
+        self._hook_engine = HookEngine(load_hooks(self._config.hooks))
 
     # 构建工具注册表，注入 TaskManager（任务工具共享同一实例）；可选注入 SpawnAgentTool
     def _build_registry(
@@ -134,6 +139,9 @@ class AgentRunner:
         exit_worktree_tool = ExitWorktreeTool()
         if _ok(exit_worktree_tool.name):
             registry.register(exit_worktree_tool)
+        # exit_plan_mode（agent: package-d）
+        if _ok("exit_plan_mode"):
+            registry.register(ExitPlanModeTool())
         for t in [
             TaskCreateTool(task_manager),
             TaskUpdateTool(task_manager),
@@ -247,6 +255,11 @@ class AgentRunner:
                     session_id=session_id_str,
                     tool_whitelist=tool_whitelist,
                 )
+                # 把当前 registry 的工具分类注入 permission_manager，供 PermissionMode 覆盖用
+                if self._permission_manager is not None:
+                    self._permission_manager.set_tool_categories(
+                        {t.name: t.category for t in registry._tools.values()}
+                    )
                 session_dir = (
                     store.session_dir(session.id)
                     if session is not None and store is not None
@@ -259,6 +272,7 @@ class AgentRunner:
                     compactor=compactor,
                     compact_threshold=self._config.compaction.auto_threshold,
                     session_id=session_id_str,
+                    hook_engine=self._hook_engine,
                 )
                 await loop.run(context)
             except asyncio.CancelledError:

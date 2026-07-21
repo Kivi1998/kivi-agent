@@ -75,6 +75,21 @@ class McpConfig:
 
 
 @dataclass
+class HookEntry:
+    id: str
+    event: str
+    command: str
+    condition: str | None = None
+    reject: bool = False
+    async_exec: bool = False
+
+
+@dataclass
+class HooksConfig:
+    entries: list[HookEntry] = field(default_factory=list)
+
+
+@dataclass
 class KamaConfig:
     host: str = _DEFAULT_HOST
     port: int = _DEFAULT_PORT
@@ -85,6 +100,7 @@ class KamaConfig:
     permission: PermissionConfig = field(default_factory=PermissionConfig)
     compaction: CompactionConfig = field(default_factory=CompactionConfig)
     mcp: McpConfig = field(default_factory=McpConfig)
+    hooks: HooksConfig = field(default_factory=HooksConfig)
 
 
 # 构建并返回运行时配置：默认值 → 全局 TOML → 项目本地 TOML → .env → 系统环境变量（后者优先级最高）

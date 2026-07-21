@@ -18,10 +18,11 @@ from kama_claude.core.bus.events import (
 from kama_claude.core.events.bus import EventBus
 from kama_claude.core.llm.types import ToolCallBlock
 from kama_claude.core.tools.base import ToolResult
-from kama_claude.core.tools.errors import RateLimitedError
+from kama_claude.core.tools.errors import RateLimitedError, ToolRejectedError
 from kama_claude.core.tools.registry import ToolRegistry
 
 if TYPE_CHECKING:
+    from kama_claude.core.hooks.engine import HookEngine
     from kama_claude.core.permissions.manager import PermissionManager
 
 _DEFAULT_TIMEOUT: float = 120.0
@@ -70,6 +71,7 @@ async def invoke_tool(
     *,
     permission_manager: PermissionManager | None = None,
     session_id: str = "",
+    hook_engine: HookEngine | None = None,
 ) -> ToolResult:
     t0 = time.monotonic()
 
@@ -85,6 +87,16 @@ async def invoke_tool(
 
     def elapsed() -> int:
         return int((time.monotonic() - t0) * 1000)
+
+    # 前置钩子：reject=True 的钩子若失败则把工具调用短路为 permission_denied，不进入实际执行
+    if hook_engine is not None:
+        try:
+            await hook_engine.run_pre_tool_hooks(tool_call.name, dict(tool_call.input))
+        except ToolRejectedError as exc:
+            return await _fail(
+                bus, run_id, tool_call,
+                "permission_denied", str(exc), elapsed(),
+            )
 
     tool = registry.get(tool_call.name)
     if tool is None:
@@ -165,6 +177,9 @@ async def invoke_tool(
                         ts=_now(),
                     )
                 )
+                if hook_engine is not None:
+                    # 后置钩子：异常被 HookEngine 内部吞掉，调用方不需要额外处理
+                    await hook_engine.run_post_tool_hooks(tool_call.name, result.content[:200])
                 return result
 
         except RateLimitedError as exc:

@@ -143,3 +143,32 @@ async def test_runtime_exception_gives_runtime_error() -> None:
 async def test_started_event_always_first() -> None:
     result, events = await _run(ToolRegistry(), _call("nonexistent"))
     assert events[0].type == "tool.call_started"  # type: ignore[attr-defined]
+
+
+# ── HookEngine 接入（Task D7）────────────────────────────────────────────────
+
+
+# 功能：验证 pre_tool_use 钩子拒绝时，invoke_tool 返回 is_error=True 的 ToolResult 而不是让异常向上抛出
+# 设计：invoke_tool 的既有契约是"永不抛异常，失败都体现在返回值里"，
+#      这里断言钩子拒绝也遵守同一契约，error_type 标记为 "permission_denied" 与既有权限拒绝路径保持一致的语义
+async def test_invoke_tool_respects_hook_rejection() -> None:
+    from kama_claude.core.hooks.engine import HookEngine
+    from kama_claude.core.hooks.events import LifecycleEvent
+    from kama_claude.core.hooks.models import Hook
+    from kama_claude.core.tools.builtin.bash import BashTool
+
+    registry = ToolRegistry()
+    registry.register(BashTool())
+    hook_engine = HookEngine([
+        Hook(id="deny", event=LifecycleEvent.PRE_TOOL_USE, command="exit 1", reject=True)
+    ])
+    bus = EventBus()
+    result = await invoke_tool(
+        registry,
+        ToolCallBlock(id="t1", name="bash", input={"command": "echo hi"}),
+        bus,
+        run_id="r1",
+        hook_engine=hook_engine,
+    )
+    assert result.is_error
+    assert result.error_type == "permission_denied"

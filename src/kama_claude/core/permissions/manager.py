@@ -17,6 +17,7 @@ from kama_claude.core.permissions.policy import (
     matches_outside_cwd,
     param_preview,
 )
+from kama_claude.core.permissions.modes import PermissionMode, mode_override
 from kama_claude.core.permissions.storage import load_policy_file, save_policy_file
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,8 @@ class PermissionManager:
         *,
         policy_file: Path | None = None,
         timeout_s: float = 60.0,
+        mode: PermissionMode = PermissionMode.DEFAULT,
+        tool_categories: dict[str, str] | None = None,
     ) -> None:
         self._policies: dict[str, ToolPolicy] = policies or dict(DEFAULT_POLICIES)
         # tool_use_id → pending Future + metadata
@@ -54,6 +57,18 @@ class PermissionManager:
         )
         # 0 表示不超时
         self._timeout_s = timeout_s
+        # 当前权限模式（DEFAULT/ACCEPT_EDITS/PLAN/BYPASS），由调用方按需切换
+        self._mode = mode
+        # 工具名 → category 的静态映射，由调用方（runner.py）在构造时注入
+        self._tool_categories = tool_categories or {}
+
+    # 切换当前权限模式（供 exit_plan_mode 等工具驱动的模式切换调用）
+    def set_mode(self, mode: PermissionMode) -> None:
+        self._mode = mode
+
+    # 批量更新工具分类映射（在 registry 建好后调用一次以注入 category 信息）
+    def set_tool_categories(self, categories: dict[str, str]) -> None:
+        self._tool_categories = dict(categories)
 
     # 对工具名 + 参数执行 4 层静态评估，不挂起
     def evaluate(self, tool_name: str, params: dict[str, Any]) -> PermissionDecision:
@@ -62,6 +77,7 @@ class PermissionManager:
         return evaluate(tool_name, params, policy)
 
     # 检查权限；如需 ask 则向客户端发事件并等待响应；返回 (allowed, decision_str)
+    # NOTE: 该签名是公开契约（invoke_tool 调用方 + 下游包 F 依赖）；新增参数只能放在关键字部分末尾，禁止改动位置参数
     async def check_and_wait(
         self,
         tool_use_id: str,
@@ -70,6 +86,14 @@ class PermissionManager:
         session_id: str,
         event_emitter: Callable[[dict[str, Any]], Awaitable[None]],
     ) -> tuple[bool, str]:
+        # 模式覆盖：优先级最高，发生在所有分层策略之前
+        category = self._tool_categories.get(tool_name, "other")
+        override = mode_override(self._mode, category)
+        if override is not None:
+            if override == PermissionDecision.ALLOW:
+                return True, f"mode_{self._mode.value}"
+            return False, f"mode_{self._mode.value}_deny"
+
         command = str(params.get("command", "")) if tool_name == "bash" else ""
         policy = self._policies.get(tool_name)
 

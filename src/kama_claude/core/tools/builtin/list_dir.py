@@ -19,6 +19,7 @@ class ListDirParams(BaseModel):
 class ListDirTool(BaseTool):
     params_model = ListDirParams
     name = "list_dir"
+    category = "read"
     description = (
         "List the contents of a directory as a tree. "
         "Path must be relative to the current working directory. "

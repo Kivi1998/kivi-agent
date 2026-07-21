@@ -8,6 +8,7 @@ from kama_claude.core.tools.base import BaseTool, ToolResult
 
 class TaskCreateTool(BaseTool):
     name = "task_create"
+    category = "write"
     description = (
         "Create a new task to track a unit of work. "
         "Use this to break down a complex goal into smaller, trackable steps. "

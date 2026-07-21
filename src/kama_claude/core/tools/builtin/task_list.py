@@ -6,6 +6,7 @@ from kama_claude.core.tools.base import BaseTool, ToolResult
 
 class TaskListTool(BaseTool):
     name = "task_list"
+    category = "read"
     description = (
         "List all tasks with their current status and blocking dependencies. "
         "Use this to check what work remains and what can be started next."
