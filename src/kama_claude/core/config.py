@@ -61,12 +61,13 @@ class CompactionConfig:
 @dataclass
 class McpServerConfig:
     name: str
-    transport: str = "stdio"       # "stdio" | "tcp"
+    transport: str = "stdio"       # "stdio" | "tcp" | "http"
     command: str = ""              # stdio 专用：可执行文件路径
     args: list[str] = field(default_factory=list)
     env: dict[str, str] = field(default_factory=dict)
     host: str = "localhost"        # tcp 专用
     port: int = 3000               # tcp 专用
+    url: str = ""                  # http 专用
 
 
 @dataclass
@@ -288,8 +289,8 @@ def _apply_toml(config: KamaConfig, data: dict[str, Any]) -> None:
             if not isinstance(name, str) or not name:
                 raise SystemExit(f"Config error: mcp.servers[{i}].name must be a non-empty string")
             transport = srv.get("transport", "stdio")
-            if transport not in ("stdio", "tcp"):
-                raise SystemExit(f"Config error: mcp.servers[{i}].transport must be 'stdio' or 'tcp'")
+            if transport not in ("stdio", "tcp", "http"):
+                raise SystemExit(f"Config error: mcp.servers[{i}].transport must be 'stdio', 'tcp', or 'http'")
             s = McpServerConfig(name=name, transport=transport)
             if "command" in srv:
                 val = srv["command"]
@@ -316,6 +317,11 @@ def _apply_toml(config: KamaConfig, data: dict[str, Any]) -> None:
                 if not isinstance(val, int):
                     raise SystemExit(f"Config error: mcp.servers[{i}].port must be an integer")
                 s.port = val
+            if "url" in srv:
+                val = srv["url"]
+                if not isinstance(val, str):
+                    raise SystemExit(f"Config error: mcp.servers[{i}].url must be a string")
+                s.url = val
             config.mcp.servers.append(s)
 
 

@@ -104,3 +104,39 @@ def test_project_overrides_global(tmp_path: Path, monkeypatch: pytest.MonkeyPatc
     assert skill is not None
     assert skill.description == "local override"
     assert "local system prompt" in skill.system_prompt_template
+
+
+# 功能：验证按关键词能搜到名字或描述里含该词的 skill，且结果按匹配度排序（名字命中优先于描述命中）
+# 设计：用临时目录写两个本地 skill，搜索 "code" 时只命中 code-review 的 name（10 分），
+#      不会触发任何内建 skill 的 name/description 匹配，从而断言结果唯一且为期望项
+def test_search_finds_by_name_and_description(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    skills_dir = tmp_path / ".kama" / "skills"
+    skills_dir.mkdir(parents=True)
+    (skills_dir / "code-review.md").write_text(
+        "---\nname: code-review\ndescription: 审查代码改动\n---\n审查 prompt 正文"
+    )
+    (skills_dir / "summarize.md").write_text(
+        "---\nname: summarize\ndescription: 生成摘要\n---\n摘要 prompt 正文"
+    )
+    monkeypatch.chdir(tmp_path)
+
+    loader = SkillLoader()
+    results = loader.search("code")
+    assert len(results) == 1
+    assert results[0].name == "code-review"
+
+
+# 功能：验证搜索结果数量受 limit 参数限制
+# 设计：写 3 个都匹配同一关键词的 skill，limit=2 时断言只返回 2 个
+def test_search_respects_limit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    skills_dir = tmp_path / ".kama" / "skills"
+    skills_dir.mkdir(parents=True)
+    for i in range(3):
+        (skills_dir / f"tool-{i}.md").write_text(
+            f"---\nname: tool-{i}\ndescription: 工具相关技能 {i}\n---\n正文"
+        )
+    monkeypatch.chdir(tmp_path)
+
+    loader = SkillLoader()
+    results = loader.search("工具", limit=2)
+    assert len(results) == 2

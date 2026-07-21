@@ -4,7 +4,9 @@ import asyncio
 import json
 import logging
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
+
+import httpx
 
 log = logging.getLogger(__name__)
 
@@ -35,6 +37,9 @@ class McpClient:
         self._transport = ""
         self._lock = asyncio.Lock()
         self._stderr_task: asyncio.Task[None] | None = None
+        self._http_url: str | None = None
+        self._http_headers: dict[str, str] = {}
+        self._http_client: httpx.AsyncClient | None = None
 
     _STREAM_LIMIT = 64 * 1024 * 1024  # 64 MB，防止大响应触发 LimitOverrunError
 
@@ -67,6 +72,14 @@ class McpClient:
         self._reader, tcp_writer = await asyncio.open_connection(host, port, limit=self._STREAM_LIMIT)
         self._tcp_writer = tcp_writer
         self._transport = "tcp"
+        await self._initialize()
+
+    # 通过 HTTP POST 连接 MCP server（streamable HTTP transport）并完成 initialize 握手
+    async def connect_http(self, url: str, headers: dict[str, str] | None = None) -> None:
+        self._http_url = url
+        self._http_headers = headers or {}
+        self._http_client = httpx.AsyncClient(timeout=30.0)
+        self._transport = "http"
         await self._initialize()
 
     # 发送 initialize 请求完成 MCP 握手
@@ -143,13 +156,29 @@ class McpClient:
                     await writer.wait_closed()
                 except Exception:
                     pass
+        elif self._transport == "http":
+            if self._http_client is not None:
+                await self._http_client.aclose()
 
     # 发送 JSON-RPC 请求并等待响应；id 比较用字符串兼容服务端返回字符串 id 的情况
     async def _call(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
         self._id += 1
         req_id = self._id
-        req_id_str = str(req_id)
         request = {"jsonrpc": "2.0", "id": req_id, "method": method, "params": params}
+
+        if self._transport == "http":
+            assert self._http_client is not None and self._http_url is not None
+            response = await self._http_client.post(
+                self._http_url, json=request, headers=self._http_headers,
+            )
+            response.raise_for_status()
+            msg = response.json()
+            if "error" in msg:
+                err = msg["error"]
+                raise McpToolError(f"{err.get('message', str(err))} (code={err.get('code')})")
+            return cast(dict[str, Any], msg.get("result", {}))
+
+        req_id_str = str(req_id)
         async with self._lock:
             await self._write_line(json.dumps(request))
             while True:
@@ -170,8 +199,7 @@ class McpClient:
                         raise McpToolError(
                             f"{err.get('message', str(err))} (code={err.get('code')})"
                         )
-                    result: dict[str, Any] = msg.get("result", {})
-                    return result
+                    return cast(dict[str, Any], msg.get("result", {}))
 
     # 发送 JSON-RPC 通知（无响应）
     async def _notify(self, method: str, params: dict[str, Any]) -> None:
