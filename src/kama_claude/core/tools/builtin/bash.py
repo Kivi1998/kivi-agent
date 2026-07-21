@@ -19,6 +19,7 @@ class BashParams(BaseModel):
 class BashTool(BaseTool):
     params_model = BashParams
     name = "bash"
+    category = "command"
     description = (
         "Execute a shell command and return its output (stdout + stderr combined). "
         "Non-interactive only — commands requiring user input will hang and time out. "

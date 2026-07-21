@@ -17,6 +17,7 @@ class ReadFileParams(BaseModel):
 class ReadFileTool(BaseTool):
     params_model = ReadFileParams
     name = "read_file"
+    category = "read"
     description = (
         "Read the text content of a file. "
         "Path must be relative to the current working directory. "

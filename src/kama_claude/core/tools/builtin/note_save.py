@@ -14,6 +14,7 @@ class NoteSaveParams(BaseModel):
 class NoteSaveTool(BaseTool):
     params_model = NoteSaveParams
     name = "note_save"
+    category = "write"
     description = (
         "Save a concise fact or decision to this session's notes. "
         "These notes are visible in future turns of the same session."
