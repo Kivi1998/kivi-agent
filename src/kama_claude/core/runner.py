@@ -19,6 +19,7 @@ from kama_claude.core.mcp.server import McpServerManager
 from kama_claude.core.memory.loader import load_context_file
 from kama_claude.core.permissions.manager import PermissionManager
 from kama_claude.core.runs import RUNS_DIR, new_run_id
+from kama_claude.core.session.checkpoint import CheckpointData, CheckpointStore
 from kama_claude.core.session.model import Session
 from kama_claude.core.session.store import SessionStore
 from kama_claude.core.subagent.registry import BackgroundTaskRegistry
@@ -220,12 +221,18 @@ class AgentRunner:
                     else run_path
                 )
                 compactor = Compactor(bus, session_dir, session_id_str)
+                # package-e: 运行检查点装配点（agent: package-e）—— 复用 SessionStore 的根目录
+                # 每个 run 的 checkpoint.json 写到 <root>/<sid>/runs/<run_id>/checkpoint.json
+                checkpoint_store: CheckpointStore | None = None
+                if session is not None and store is not None:
+                    checkpoint_store = CheckpointStore(store.session_dir(session.id).parent)
                 loop = AgentLoop(
                     provider, registry, bus,
                     permission_manager=self._permission_manager,
                     compactor=compactor,
                     compact_threshold=self._config.compaction.auto_threshold,
                     session_id=session_id_str,
+                    checkpoint_store=checkpoint_store,
                 )
                 await loop.run(context)
             except asyncio.CancelledError:

@@ -15,6 +15,7 @@ import logging
 if TYPE_CHECKING:
     from kama_claude.core.compact.compactor import Compactor
     from kama_claude.core.permissions.manager import PermissionManager
+    from kama_claude.core.session.checkpoint import CheckpointStore
 
 
 log = logging.getLogger(__name__)
@@ -35,6 +36,7 @@ class AgentLoop:
         compactor: Compactor | None = None,
         compact_threshold: float = 0.80,
         session_id: str = "",
+        checkpoint_store: CheckpointStore | None = None,
     ) -> None:
         self._provider = provider
         self._registry = registry
@@ -43,6 +45,8 @@ class AgentLoop:
         self._compactor = compactor
         self._compact_threshold = compact_threshold
         self._session_id = session_id
+        # 可选检查点存储；非 session 模式或未注入时跳过持久化
+        self._checkpoint_store = checkpoint_store
 
     # 驱动 plan→act→observe 循环直到上下文终止；CancelledError 向上传播
     async def run(self, context: ExecutionContext) -> None:
@@ -107,6 +111,23 @@ class AgentLoop:
                         "Please break the task into smaller steps and try again.",
                         is_error=True,
                     )
+
+            # 工具结果写回后持久化检查点，便于会话恢复时回看进度
+            if (
+                self._checkpoint_store is not None
+                and self._session_id
+            ):
+                from kama_claude.core.session.checkpoint import CheckpointData
+                self._checkpoint_store.save(
+                    self._session_id, context.run_id,
+                    CheckpointData(
+                        run_id=context.run_id,
+                        step=context.step,
+                        status=context.status,
+                        message_count=len(context.messages),
+                        ts=_now(),
+                    ),
+                )
 
             # Termination check — end_turn wins over max_steps if both hit on same step
             if response.stop_reason == "end_turn":
