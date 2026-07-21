@@ -214,6 +214,11 @@ class AgentRunner:
                     session_id=session_id_str,
                     tool_whitelist=tool_whitelist,
                 )
+                # 把当前 registry 的工具分类注入 permission_manager，供 PermissionMode 覆盖用
+                if self._permission_manager is not None:
+                    self._permission_manager.set_tool_categories(
+                        {t.name: t.category for t in registry._tools.values()}
+                    )
                 session_dir = (
                     store.session_dir(session.id)
                     if session is not None and store is not None

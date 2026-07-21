@@ -403,3 +403,57 @@ async def test_permission_timeout_cleans_up_pending() -> None:
     # 超时后迟到的 respond 不应 crash
     mgr.respond("t_late", "allow_once")  # should be noop
     assert "t_late" not in mgr._pending
+
+
+# ── PermissionMode 覆盖（Task D3）────────────────────────────────────────────
+
+from kama_claude.core.permissions.modes import PermissionMode  # noqa: E402
+
+
+# 功能：验证 BYPASS 模式下即使工具默认策略是 ASK，也不会挂起等待审批而是直接放行
+# 设计：用默认策略为 ASK 的 bash 工具（category=command）在 BYPASS 模式下调用 check_and_wait，
+#      断言立即返回 True 且 decision 明确标示来自模式覆盖，而不是掉进 Future 等待
+async def test_bypass_mode_skips_approval() -> None:
+    from kama_claude.core.permissions.manager import PermissionManager
+
+    manager = PermissionManager(
+        mode=PermissionMode.BYPASS,
+        tool_categories={"bash": "command", "write_file": "write"},
+    )
+
+    async def _never_called(payload: dict) -> None:
+        raise AssertionError("should not emit permission.requested in BYPASS mode")
+
+    allowed, decision = await manager.check_and_wait(
+        tool_use_id="t1",
+        tool_name="bash",
+        params={"command": "echo hi"},
+        session_id="s1",
+        event_emitter=_never_called,
+    )
+    assert allowed is True
+    assert decision == "mode_bypass"
+
+
+# 功能：验证 PLAN 模式下 write_file 这类 write 分类工具被直接拒绝，不进入审批流程
+# 设计：同样用 _never_called 断言不会发出 permission.requested 事件，确认模式覆盖发生在 ask 分支之前
+async def test_plan_mode_denies_write_tool() -> None:
+    from kama_claude.core.permissions.manager import PermissionManager
+
+    manager = PermissionManager(
+        mode=PermissionMode.PLAN,
+        tool_categories={"bash": "command", "write_file": "write"},
+    )
+
+    async def _never_called(payload: dict) -> None:
+        raise AssertionError("should not emit permission.requested in PLAN mode for write tools")
+
+    allowed, decision = await manager.check_and_wait(
+        tool_use_id="t2",
+        tool_name="write_file",
+        params={"path": "a.txt", "content": "x"},
+        session_id="s1",
+        event_emitter=_never_called,
+    )
+    assert allowed is False
+    assert decision == "mode_plan_deny"
