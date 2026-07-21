@@ -45,6 +45,8 @@ DEFAULT_POLICIES: dict[str, ToolPolicy] = {
     "note_save":  ToolPolicy(default=PermissionDecision.ALLOW),
     # glob（agent: minimal-loop）
     "glob":       ToolPolicy(default=PermissionDecision.ALLOW),
+    # grep（agent: minimal-loop）
+    "grep":       ToolPolicy(default=PermissionDecision.ALLOW),
 }
 
 # 未在 DEFAULT_POLICIES 中登记的工具的兜底策略

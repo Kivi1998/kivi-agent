@@ -104,6 +104,11 @@ class AgentRunner:
         glob_tool = GlobTool()
         if _ok(glob_tool.name):
             registry.register(glob_tool)
+        # grep（agent: minimal-loop）
+        from kama_claude.core.tools.builtin.grep_tool import GrepTool
+        grep_tool = GrepTool()
+        if _ok(grep_tool.name):
+            registry.register(grep_tool)
         for t in [
             TaskCreateTool(task_manager),
             TaskUpdateTool(task_manager),
