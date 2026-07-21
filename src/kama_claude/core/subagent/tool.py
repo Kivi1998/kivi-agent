@@ -37,6 +37,79 @@ def _now() -> str:
     return datetime.now(UTC).isoformat()
 
 
+# 创建并注册一个后台运行的子 agent，返回其 run_id；供 SpawnAgentTool 和 TeamManager 共用
+async def spawn_background_subagent(
+    *,
+    provider: "LLMProvider",
+    parent_bus: EventBus,
+    parent_run_id: str,
+    permission_manager: "PermissionManager | None",
+    max_steps: int,
+    task_registry: BackgroundTaskRegistry,
+    runs_dir: Path,
+    session_id: str,
+    depth: int,
+    description: str,
+    prompt: str,
+    subagent_type: str = "",
+) -> str:
+    profile: AgentProfile | None = None
+    if subagent_type:
+        profile = _profile_loader.load(subagent_type)
+
+    child_run_id = new_run_id()
+    child_context = ExecutionContext(
+        run_id=child_run_id,
+        goal=prompt,
+        max_steps=max_steps,
+        system_prompt_override=profile.system_prompt if profile else None,
+    )
+
+    child_bus = EventBus()
+
+    async def _bridge(event: BaseModel) -> None:
+        await parent_bus.publish(event)
+
+    child_bus.subscribe(_bridge)
+
+    # 复用 SpawnAgentTool 实例来构建子 registry，避免重复实现一遍工具过滤逻辑
+    builder = SpawnAgentTool(
+        provider=provider, parent_bus=parent_bus, parent_run_id=parent_run_id,
+        permission_manager=permission_manager, max_steps=max_steps,
+        task_registry=task_registry, runs_dir=runs_dir, session_id=session_id, depth=depth,
+    )
+    child_registry = builder._build_child_registry(child_bus, child_run_id, profile)
+    child_loop = AgentLoop(
+        provider, child_registry, child_bus,
+        permission_manager=permission_manager, session_id=session_id,
+    )
+
+    await parent_bus.publish(
+        SubagentStartedEvent(
+            run_id=child_run_id, parent_run_id=parent_run_id,
+            description=description, ts=_now(),
+        )
+    )
+
+    child_run_path = runs_dir / child_run_id
+    child_run_path.mkdir(parents=True, exist_ok=True)
+
+    async def _run() -> None:
+        async with EventWriter(child_run_path / "events.jsonl") as writer:
+            writer.subscribe(child_bus)
+            await child_loop.run(child_context)
+        await parent_bus.publish(
+            SubagentFinishedEvent(
+                run_id=child_run_id, parent_run_id=parent_run_id,
+                status=child_context.status, ts=_now(),
+            )
+        )
+
+    task: asyncio.Task[None] = asyncio.create_task(_run())
+    task_registry.register(child_run_id, task, child_context)
+    return child_run_id
+
+
 class SpawnAgentParams(BaseModel):
     model_config = ConfigDict(extra="ignore")
     description: str
@@ -115,6 +188,22 @@ class SpawnAgentTool(BaseTool):
                 error_type="runtime_error",
             )
 
+        if p.run_in_background:
+            run_id = await spawn_background_subagent(
+                provider=self._provider, parent_bus=self._parent_bus,
+                parent_run_id=self._parent_run_id, permission_manager=self._permission_manager,
+                max_steps=self._max_steps, task_registry=self._task_registry,
+                runs_dir=self._runs_dir, session_id=self._session_id, depth=self._depth,
+                description=p.description, prompt=p.prompt, subagent_type=p.subagent_type,
+            )
+            return ToolResult(
+                content=(
+                    f"Subagent started in background. run_id={run_id}. "
+                    f"Use agent_result(run_id='{run_id}') to retrieve result."
+                )
+            )
+
+        # 前台分支：直接 inline 构建子 agent 并同步等待完成
         profile: AgentProfile | None = None
         if p.subagent_type:
             profile = _profile_loader.load(p.subagent_type)
@@ -156,20 +245,6 @@ class SpawnAgentTool(BaseTool):
         child_run_path = self._runs_dir / child_run_id
         child_run_path.mkdir(parents=True, exist_ok=True)
 
-        if p.run_in_background:
-            task: asyncio.Task[None] = asyncio.create_task(
-                self._run_background(
-                    child_loop, child_context, child_bus, child_run_path, child_run_id
-                )
-            )
-            self._task_registry.register(child_run_id, task, child_context)
-            return ToolResult(
-                content=(
-                    f"Subagent started in background. run_id={child_run_id}. "
-                    f"Use agent_result(run_id='{child_run_id}') to retrieve result."
-                )
-            )
-
         async with EventWriter(child_run_path / "events.jsonl") as writer:
             writer.subscribe(child_bus)
             await child_loop.run(child_context)
@@ -194,27 +269,6 @@ class SpawnAgentTool(BaseTool):
             ),
             is_error=True,
             error_type="runtime_error",
-        )
-
-    # 后台任务协程：写事件文件，运行 loop，发布完成事件
-    async def _run_background(
-        self,
-        loop: AgentLoop,
-        context: ExecutionContext,
-        bus: EventBus,
-        run_path: Path,
-        run_id: str,
-    ) -> None:
-        async with EventWriter(run_path / "events.jsonl") as writer:
-            writer.subscribe(bus)
-            await loop.run(context)
-        await self._parent_bus.publish(
-            SubagentFinishedEvent(
-                run_id=run_id,
-                parent_run_id=self._parent_run_id,
-                status=context.status,
-                ts=_now(),
-            )
         )
 
     # 构造子 registry；基于角色配置过滤工具，深度允许时注册嵌套 SpawnAgentTool

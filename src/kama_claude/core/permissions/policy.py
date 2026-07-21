@@ -57,6 +57,12 @@ DEFAULT_POLICIES: dict[str, ToolPolicy] = {
     "exit_worktree":  ToolPolicy(default=PermissionDecision.ASK),
     # exit_plan_mode（agent: package-d）
     "exit_plan_mode": ToolPolicy(default=PermissionDecision.ALLOW),
+    # team_create（agent: package-f）：会真实起多个后台 LLM 调用，产生成本，默认需要审批
+    "team_create": ToolPolicy(default=PermissionDecision.ASK),
+    # team_message（agent: package-f）：纯文本消息传递，低风险
+    "team_message": ToolPolicy(default=PermissionDecision.ALLOW),
+    # team_status（agent: package-f）：只读查询，无副作用
+    "team_status": ToolPolicy(default=PermissionDecision.ALLOW),
 }
 
 # 未在 DEFAULT_POLICIES 中登记的工具的兜底策略

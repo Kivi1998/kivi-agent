@@ -81,6 +81,20 @@ class AgentRunner:
         self._mcp_manager = mcp_manager
         # 跨 run 共享的后台 subagent 任务注册表
         self._task_registry = BackgroundTaskRegistry()
+        # package-f: 团队管理器，跨 _build_registry() 调用持久化，使同一 run 内后续
+        # team_status/team_message 能查到之前 team_create 创建的团队
+        # provider/bus 在 _build_registry() 阶段按当前 run 重新绑定（见 _bind_team_manager）
+        from kama_claude.core.events.bus import EventBus as _EventBus
+        from kama_claude.core.teams.manager import TeamManager
+        self._team_manager = TeamManager(
+            provider=provider,
+            bus=bus or _EventBus(),
+            permission_manager=permission_manager,
+            max_steps=self._config.agent.max_steps,
+            task_registry=self._task_registry,
+            runs_dir=self._runs_dir,
+            session_id="",
+        )
         # 钩子引擎：从配置加载的钩子在工具调用前后执行
         self._hook_engine = HookEngine(load_hooks(self._config.hooks))
 
@@ -175,6 +189,19 @@ class AgentRunner:
                 )
             if _ok("agent_result"):
                 registry.register(AgentResultTool(self._task_registry))
+            # team_create（agent: package-f）：复用跨 _build_registry() 调用的 self._team_manager
+            if _ok("team_create"):
+                from kama_claude.core.tools.builtin.team_create import TeamCreateTool
+                registry.register(TeamCreateTool(self._team_manager))
+            # team_message（agent: package-f）：mailbox 写到 per-session 的 runs 目录
+            if _ok("team_message"):
+                from kama_claude.core.tools.builtin.team_message import TeamMessageTool
+                mailbox_root = child_runs_dir or self._runs_dir
+                registry.register(TeamMessageTool(mailbox_root=mailbox_root))
+            # team_status（agent: package-f）：只读状态查询，复用 team_manager
+            if _ok("team_status"):
+                from kama_claude.core.tools.builtin.team_status import TeamStatusTool
+                registry.register(TeamStatusTool(self._team_manager))
         if self._mcp_manager is not None:
             for mcp_tool in self._mcp_manager.get_tools():
                 if _ok(mcp_tool.name):
@@ -248,6 +275,9 @@ class AgentRunner:
                         include_payload=self._config.trace.include_llm_payload,
                     )
                 session_id_str = session.id if session is not None else ""
+                # package-f: 把当前 run 的 provider/bus/session_id 绑到 TeamManager，
+                # 使 team_create 工具调用能找到正确的 LLM 后端
+                self._team_manager.bind(provider=provider, bus=bus, session_id=session_id_str)
                 child_runs_dir = (
                     store.runs_dir(session.id)
                     if session is not None and store is not None
