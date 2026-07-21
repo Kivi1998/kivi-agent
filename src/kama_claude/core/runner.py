@@ -120,6 +120,16 @@ class AgentRunner:
         diff_tool = DiffTool()
         if _ok(diff_tool.name):
             registry.register(diff_tool)
+        # enter_worktree（agent: minimal-loop）
+        from kama_claude.core.tools.builtin.enter_worktree import EnterWorktreeTool
+        enter_worktree_tool = EnterWorktreeTool()
+        if _ok(enter_worktree_tool.name):
+            registry.register(enter_worktree_tool)
+        # exit_worktree（agent: minimal-loop）
+        from kama_claude.core.tools.builtin.exit_worktree import ExitWorktreeTool
+        exit_worktree_tool = ExitWorktreeTool()
+        if _ok(exit_worktree_tool.name):
+            registry.register(exit_worktree_tool)
         for t in [
             TaskCreateTool(task_manager),
             TaskUpdateTool(task_manager),
