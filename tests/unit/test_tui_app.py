@@ -7,6 +7,7 @@ from kama_claude.tui.app import (
     KamaTuiApp,
     LLMStreamBlock,
     ToolCallBlock,
+    _header_text,
     _param_summary,
     _preview,
 )
@@ -203,3 +204,27 @@ def test_unknown_event_silently_ignored() -> None:
 
     app._handle_event({"type": "some.unknown.type", "run_id": "r", "ts": "t"})
     assert appended == []
+
+
+# 功能：验证状态栏文本包含当前 provider 和 model，数据直接来自传入参数而不依赖模型自我报告
+# 设计：不依赖任何已挂载组件，纯函数直接断言渲染出的字符串同时含 provider 和 model，
+#      覆盖"用户一眼就能看到实际连接的是谁"这个验收点
+def test_header_text_includes_provider_and_model() -> None:
+    text = _header_text(
+        host="127.0.0.1", port=7437, session_id="sess-abc123", state="ready",
+        llm_provider="openai_compat", llm_model="deepseek-v4-pro",
+    )
+    assert "openai_compat" in text
+    assert "deepseek-v4-pro" in text
+
+
+# 功能：验证未连接 session（session_id 为 None）时状态栏仍正常渲染，不出现多余的空 session 段
+# 设计：覆盖启动阶段"还没建立 session"这个边界状态，与已有行为（session 为空时不展示 session 段）保持一致
+def test_header_text_without_session_id() -> None:
+    text = _header_text(
+        host="127.0.0.1", port=7437, session_id=None, state="connecting",
+        llm_provider="anthropic", llm_model="claude-sonnet-4-6",
+    )
+    assert "anthropic" in text
+    assert "claude-sonnet-4-6" in text
+    assert "connecting" in text

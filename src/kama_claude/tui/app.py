@@ -27,6 +27,33 @@ def _preview(s: str, n: int) -> str:
     return s[:n] + "…" if len(s) > n else s
 
 
+_HEADER_STATE_COLOR: dict[str, str] = {
+    "ready": "green",
+    "running": "yellow",
+    "disconnected": "red",
+    "connecting": "dim",
+}
+
+
+# 渲染状态栏文本：host:port、当前 provider/model（来自配置，非模型自我报告）、session、连接状态
+def _header_text(
+    *,
+    host: str,
+    port: int,
+    session_id: str | None,
+    state: str,
+    llm_provider: str,
+    llm_model: str,
+) -> str:
+    session = f"  [dim]{session_id}[/dim]" if session_id else ""
+    color = _HEADER_STATE_COLOR.get(state, "dim")
+    return (
+        f"[bold]KamaClaude[/bold]  [dim]{host}:{port}[/dim]"
+        f"  [cyan]{llm_provider}[/cyan]/[cyan]{llm_model}[/cyan]"
+        f"{session}  [{color}]{state}[/{color}]"
+    )
+
+
 
 
 def _params_str(params: dict[str, Any]) -> str:
@@ -502,11 +529,20 @@ class KamaTuiApp(App[None]):
     )
 
     # 初始化连接参数和 TUI 内部状态
-    def __init__(self, host: str, port: int, replay_run_id: str | None = None) -> None:
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        replay_run_id: str | None = None,
+        llm_provider: str = "anthropic",
+        llm_model: str = "",
+    ) -> None:
         super().__init__()
         self._host = host
         self._port = port
         self._replay_run_id = replay_run_id
+        self._llm_provider = llm_provider
+        self._llm_model = llm_model
         self._client: SocketClient | None = None
         self._current_llm: LLMStreamBlock | None = None
         self._pending_tool_blocks: dict[str, ToolCallBlock] = {}
@@ -744,16 +780,15 @@ class KamaTuiApp(App[None]):
             header = self.query_one("#header", Label)
         except NoMatches:
             return
-        session = f"  [dim]{self._session_id}[/dim]" if self._session_id else ""
-        color = {
-            "ready": "green",
-            "running": "yellow",
-            "disconnected": "red",
-            "connecting": "dim",
-        }.get(state, "dim")
         header.update(
-            f"[bold]KamaClaude[/bold]  [dim]{self._host}:{self._port}[/dim]"
-            f"{session}  [{color}]{state}[/{color}]"
+            _header_text(
+                host=self._host,
+                port=self._port,
+                session_id=self._session_id,
+                state=state,
+                llm_provider=self._llm_provider,
+                llm_model=self._llm_model,
+            )
         )
 
     # 管理 SocketClient 生命周期：连接、订阅事件、断线重连
@@ -1057,5 +1092,11 @@ class KamaTuiApp(App[None]):
 
 # TUI 入口：读取配置并启动 KamaTuiApp
 def run(config: KamaConfig, replay_run_id: str | None = None) -> None:
-    app = KamaTuiApp(config.host, config.port, replay_run_id=replay_run_id)
+    app = KamaTuiApp(
+        config.host,
+        config.port,
+        replay_run_id=replay_run_id,
+        llm_provider=config.llm.provider,
+        llm_model=config.llm.default_model,
+    )
     app.run()
