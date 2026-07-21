@@ -193,6 +193,11 @@ class AgentRunner:
             if _ok("team_create"):
                 from kama_claude.core.tools.builtin.team_create import TeamCreateTool
                 registry.register(TeamCreateTool(self._team_manager))
+            # team_message（agent: package-f）：mailbox 写到 per-session 的 runs 目录
+            if _ok("team_message"):
+                from kama_claude.core.tools.builtin.team_message import TeamMessageTool
+                mailbox_root = child_runs_dir or self._runs_dir
+                registry.register(TeamMessageTool(mailbox_root=mailbox_root))
         if self._mcp_manager is not None:
             for mcp_tool in self._mcp_manager.get_tools():
                 if _ok(mcp_tool.name):
