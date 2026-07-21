@@ -39,17 +39,31 @@ class HookEngine:
 
     # 依次执行工具调用前的钩子；任一 reject=True 的钩子返回非零退出码则抛出 ToolRejectedError
     async def run_pre_tool_hooks(self, tool_name: str, params: dict[str, object]) -> None:
-        payload = {"event": LifecycleEvent.PRE_TOOL_USE.value, "tool_name": tool_name, "params": params}
+        payload: dict[str, object] = {
+            "event": LifecycleEvent.PRE_TOOL_USE.value,
+            "tool_name": tool_name,
+            "params": params,
+        }
         for hook in self._hooks_for(LifecycleEvent.PRE_TOOL_USE):
             code = await self._run_command(hook.command, payload)
             if code != 0:
                 if hook.reject:
-                    raise ToolRejectedError(f"tool call rejected by hook '{hook.id}' (exit code {code})")
-                logger.warning("non-blocking pre_tool_use hook '%s' failed (exit code %d)", hook.id, code)
+                    raise ToolRejectedError(
+                        f"tool call rejected by hook '{hook.id}' (exit code {code})"
+                    )
+                logger.warning(
+                    "non-blocking pre_tool_use hook '%s' failed (exit code %d)",
+                    hook.id,
+                    code,
+                )
 
     # 触发工具调用后的钩子；async_exec=True 的钩子后台执行不等待，其余顺序等待完成
     async def run_post_tool_hooks(self, tool_name: str, result_summary: str) -> None:
-        payload = {"event": LifecycleEvent.POST_TOOL_USE.value, "tool_name": tool_name, "result_summary": result_summary}
+        payload: dict[str, object] = {
+            "event": LifecycleEvent.POST_TOOL_USE.value,
+            "tool_name": tool_name,
+            "result_summary": result_summary,
+        }
         for hook in self._hooks_for(LifecycleEvent.POST_TOOL_USE):
             if hook.async_exec:
                 asyncio.ensure_future(self._run_command(hook.command, payload))

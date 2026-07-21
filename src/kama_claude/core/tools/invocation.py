@@ -71,7 +71,7 @@ async def invoke_tool(
     *,
     permission_manager: PermissionManager | None = None,
     session_id: str = "",
-    hook_engine: "HookEngine | None" = None,
+    hook_engine: HookEngine | None = None,
 ) -> ToolResult:
     t0 = time.monotonic()
 

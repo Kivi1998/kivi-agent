@@ -12,6 +12,8 @@ from kama_claude.core.config import KamaConfig
 from kama_claude.core.context import ExecutionContext
 from kama_claude.core.events.bus import EventBus, EventHandler
 from kama_claude.core.events.writer import EventWriter
+from kama_claude.core.hooks.engine import HookEngine
+from kama_claude.core.hooks.loader import load_hooks
 from kama_claude.core.llm.base import LLMProvider
 from kama_claude.core.llm.provider import AnthropicProvider
 from kama_claude.core.loop import AgentLoop
@@ -76,6 +78,8 @@ class AgentRunner:
         self._mcp_manager = mcp_manager
         # 跨 run 共享的后台 subagent 任务注册表
         self._task_registry = BackgroundTaskRegistry()
+        # 钩子引擎：从配置加载的钩子在工具调用前后执行
+        self._hook_engine = HookEngine(load_hooks(self._config.hooks))
 
     # 构建工具注册表，注入 TaskManager（任务工具共享同一实例）；可选注入 SpawnAgentTool
     def _build_registry(
@@ -235,6 +239,7 @@ class AgentRunner:
                     compactor=compactor,
                     compact_threshold=self._config.compaction.auto_threshold,
                     session_id=session_id_str,
+                    hook_engine=self._hook_engine,
                 )
                 await loop.run(context)
             except asyncio.CancelledError:

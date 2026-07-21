@@ -14,6 +14,7 @@ import logging
 
 if TYPE_CHECKING:
     from kama_claude.core.compact.compactor import Compactor
+    from kama_claude.core.hooks.engine import HookEngine
     from kama_claude.core.permissions.manager import PermissionManager
 
 
@@ -35,6 +36,7 @@ class AgentLoop:
         compactor: Compactor | None = None,
         compact_threshold: float = 0.80,
         session_id: str = "",
+        hook_engine: HookEngine | None = None,
     ) -> None:
         self._provider = provider
         self._registry = registry
@@ -43,6 +45,7 @@ class AgentLoop:
         self._compactor = compactor
         self._compact_threshold = compact_threshold
         self._session_id = session_id
+        self._hook_engine = hook_engine
 
     # 驱动 plan→act→observe 循环直到上下文终止；CancelledError 向上传播
     async def run(self, context: ExecutionContext) -> None:
@@ -95,6 +98,7 @@ class AgentLoop:
                         self._registry, tc, self._bus, context.run_id,
                         permission_manager=self._permission_manager,
                         session_id=self._session_id,
+                        hook_engine=self._hook_engine,
                     )
                     context.add_tool_result(tc.id, result.content, is_error=result.is_error)
             elif response.stop_reason == "max_tokens" and response.tool_calls:

@@ -23,7 +23,10 @@ class ExitPlanModeTool(BaseTool):
     input_schema: dict[str, object] = {
         "type": "object",
         "properties": {
-            "plan_summary": {"type": "string", "description": "Concise summary of the plan to present."},
+            "plan_summary": {
+                "type": "string",
+                "description": "Concise summary of the plan to present.",
+            },
         },
         "required": ["plan_summary"],
     }
