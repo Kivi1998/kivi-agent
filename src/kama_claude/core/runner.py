@@ -14,7 +14,6 @@ from kama_claude.core.events.bus import EventBus, EventHandler
 from kama_claude.core.events.writer import EventWriter
 from kama_claude.core.llm.base import LLMProvider
 from kama_claude.core.llm.factory import build_provider
-from kama_claude.core.llm.provider import AnthropicProvider
 from kama_claude.core.loop import AgentLoop
 from kama_claude.core.mcp.server import McpServerManager
 from kama_claude.core.memory.loader import load_context_file
@@ -97,9 +96,14 @@ class AgentRunner:
             return allowed is None or name in allowed
 
         registry = ToolRegistry()
-        for t in [ReadFileTool(), BashTool(), WriteFileTool(), ListDirTool()]:
+        for t in [ReadFileTool(), WriteFileTool(), ListDirTool()]:
             if _ok(t.name):
                 registry.register(t)
+        # bash（agent: minimal-loop）: 构造时注入平台沙箱（macOS Seatbelt / Linux bwrap），不允许网络
+        from kama_claude.core.sandbox import create_sandbox
+        bash_tool = BashTool(sandbox=create_sandbox(), allow_write=[str(child_runs_dir)])
+        if _ok(bash_tool.name):
+            registry.register(bash_tool)
         # glob（agent: minimal-loop）
         from kama_claude.core.tools.builtin.glob_tool import GlobTool
         glob_tool = GlobTool()

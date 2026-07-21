@@ -28,7 +28,10 @@ class EditFileTool(BaseTool):
         "type": "object",
         "properties": {
             "path": {"type": "string", "description": "Relative path to the file."},
-            "old_string": {"type": "string", "description": "Exact text to replace; must be unique in the file."},
+            "old_string": {
+                "type": "string",
+                "description": "Exact text to replace; must be unique in the file.",
+            },
             "new_string": {"type": "string", "description": "Replacement text."},
         },
         "required": ["path", "old_string", "new_string"],

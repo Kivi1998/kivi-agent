@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from kama_claude.core.sandbox import Sandbox
 from kama_claude.core.tools.base import BaseTool, ToolResult
 
 _MAX_OUTPUT_BYTES = 64 * 1024  # 64 KB
@@ -22,7 +24,8 @@ class BashTool(BaseTool):
     description = (
         "Execute a shell command and return its output (stdout + stderr combined). "
         "Non-interactive only — commands requiring user input will hang and time out. "
-        "Prefer short, focused commands. Output is truncated at 64 KB."
+        "Prefer short, focused commands. Output is truncated at 64 KB. "
+        "May run inside a filesystem/network sandbox depending on configuration."
     )
     input_schema: dict[str, object] = {
         "type": "object",
@@ -39,11 +42,24 @@ class BashTool(BaseTool):
         "required": ["command"],
     }
 
-    # 在子进程中执行 shell 命令，合并 stdout/stderr，超时或非零退出码时返回错误
+    # 可选注入沙箱与允许写入的目录；sandbox 为 None 时按原有方式直接执行
+    def __init__(
+        self,
+        sandbox: Sandbox | None = None,
+        allow_write: list[str] | None = None,
+    ) -> None:
+        self._sandbox = sandbox
+        self._allow_write = allow_write or [str(Path.cwd())]
+
+    # 在子进程中执行 shell 命令（如配置了沙箱则先包装），合并 stdout/stderr，
+    # 超时或非零退出码时返回错误
     async def invoke(self, params: dict[str, object]) -> ToolResult:
         p = BashParams.model_validate(params)
         command = p.command
         timeout = p.timeout
+
+        if self._sandbox is not None:
+            command = self._sandbox.wrap(command, allow_write=self._allow_write, network=False)
 
         try:
             proc = await asyncio.create_subprocess_shell(

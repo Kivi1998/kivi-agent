@@ -24,7 +24,7 @@ class _FakeStream:
     def __init__(self, chunks: list[_FakeStreamChunk]) -> None:
         self._chunks = chunks
 
-    def __aiter__(self) -> "_FakeStream":
+    def __aiter__(self) -> _FakeStream:
         return self
 
     async def __anext__(self) -> _FakeStreamChunk:

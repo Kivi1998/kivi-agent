@@ -29,9 +29,18 @@ class GrepTool(BaseTool):
     input_schema: dict[str, object] = {
         "type": "object",
         "properties": {
-            "pattern": {"type": "string", "description": "Regular expression to search for."},
-            "path": {"type": "string", "description": "Base directory to search from (default '.')."},
-            "include": {"type": "string", "description": "Glob to filter which files are searched (default '**/*')."},
+            "pattern": {
+                "type": "string",
+                "description": "Regular expression to search for.",
+            },
+            "path": {
+                "type": "string",
+                "description": "Base directory to search from (default '.').",
+            },
+            "include": {
+                "type": "string",
+                "description": "Glob to filter which files are searched (default '**/*').",
+            },
         },
         "required": ["pattern"],
     }
@@ -47,7 +56,11 @@ class GrepTool(BaseTool):
         try:
             regex = re.compile(p.pattern)
         except re.error as exc:
-            return ToolResult(content=f"invalid regex: {exc}", is_error=True, error_type="schema_error")
+            return ToolResult(
+                content=f"invalid regex: {exc}",
+                is_error=True,
+                error_type="schema_error",
+            )
 
         matches: list[str] = []
         for f in base.glob(p.include):

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
 
 import pytest
 
+from kama_claude.core.sandbox import Sandbox
 from kama_claude.core.tools.builtin.bash import BashTool
 from kama_claude.core.tools.builtin.list_dir import ListDirTool
 from kama_claude.core.tools.builtin.write_file import WriteFileTool
@@ -123,3 +125,25 @@ async def test_list_dir_missing_path_raises() -> None:
 async def test_list_dir_rejects_traversal() -> None:
     with pytest.raises(PermissionError):
         await ListDirTool().invoke({"path": "../"})
+
+
+# 功能：验证注入 sandbox 后，BashTool 实际执行的是被 wrap 过的命令而不是原始命令
+# 设计：注入一个记录收到的命令字符串的假 sandbox，断言它的 wrap() 被调用且其返回值确实被 create_subprocess_shell 使用
+@pytest.mark.asyncio
+async def test_bash_tool_uses_sandbox_when_provided() -> None:
+    from kama_claude.core.tools.builtin.bash import BashTool
+
+    class _FakeSandbox:
+        def __init__(self) -> None:
+            self.wrapped_commands: list[str] = []
+
+        def wrap(self, command, *, allow_write, network=False):  # type: ignore[no-untyped-def]
+            self.wrapped_commands.append(command)
+            return f"echo wrapped:{command}"
+
+    fake = _FakeSandbox()
+    tool = BashTool(sandbox=cast("Sandbox", fake), allow_write=["/tmp"])
+    result = await tool.invoke({"command": "echo real"})
+    assert not result.is_error
+    assert fake.wrapped_commands == ["echo real"]
+    assert "wrapped:echo real" in result.content

@@ -28,8 +28,14 @@ class EnterWorktreeTool(BaseTool):
         "type": "object",
         "properties": {
             "repo_root": {"type": "string", "description": "Path to the main Git repository."},
-            "name": {"type": "string", "description": "Short task name, used to derive branch/dir name."},
-            "base_branch": {"type": "string", "description": "Branch to base the worktree on (default HEAD)."},
+            "name": {
+                "type": "string",
+                "description": "Short task name, used to derive branch/dir name.",
+            },
+            "base_branch": {
+                "type": "string",
+                "description": "Branch to base the worktree on (default HEAD).",
+            },
         },
         "required": ["repo_root", "name"],
     }

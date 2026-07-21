@@ -68,7 +68,6 @@ class OpenAICompatProvider:
 
         text_parts: list[str] = []
         tool_call_buffers: dict[int, dict[str, str]] = {}
-        finish_reason: str | None = None
         usage: Any = None
 
         async for chunk in stream:
@@ -79,7 +78,9 @@ class OpenAICompatProvider:
                 await bus.publish(LlmTokenEvent(run_id=run_id, token=delta.content, ts=_now()))
             if delta.tool_calls:
                 for tc in delta.tool_calls:
-                    buf = tool_call_buffers.setdefault(tc.index, {"id": "", "name": "", "arguments": ""})
+                    buf = tool_call_buffers.setdefault(
+                        tc.index, {"id": "", "name": "", "arguments": ""}
+                    )
                     if tc.id:
                         buf["id"] = tc.id
                     if tc.function.name:
@@ -87,7 +88,6 @@ class OpenAICompatProvider:
                     if tc.function.arguments:
                         buf["arguments"] += tc.function.arguments
             if choice.finish_reason:
-                finish_reason = choice.finish_reason
                 usage = chunk.usage
 
         input_tokens = getattr(usage, "prompt_tokens", 0) or 0
@@ -107,7 +107,11 @@ class OpenAICompatProvider:
         )
 
         tool_calls = [
-            ToolCallBlock(id=buf["id"], name=buf["name"], input=json.loads(buf["arguments"] or "{}"))
+            ToolCallBlock(
+                id=buf["id"],
+                name=buf["name"],
+                input=json.loads(buf["arguments"] or "{}"),
+            )
             for buf in tool_call_buffers.values()
         ]
 

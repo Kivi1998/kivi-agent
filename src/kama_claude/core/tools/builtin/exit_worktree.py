@@ -28,7 +28,10 @@ class ExitWorktreeTool(BaseTool):
         "properties": {
             "repo_root": {"type": "string", "description": "Path to the main Git repository."},
             "path": {"type": "string", "description": "Worktree path returned by enter_worktree."},
-            "branch": {"type": "string", "description": "Worktree branch name returned by enter_worktree."},
+            "branch": {
+                "type": "string",
+                "description": "Worktree branch name returned by enter_worktree.",
+            },
         },
         "required": ["repo_root", "path", "branch"],
     }
