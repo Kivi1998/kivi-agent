@@ -99,6 +99,11 @@ class AgentRunner:
         for t in [ReadFileTool(), BashTool(), WriteFileTool(), ListDirTool()]:
             if _ok(t.name):
                 registry.register(t)
+        # glob（agent: minimal-loop）
+        from kama_claude.core.tools.builtin.glob_tool import GlobTool
+        glob_tool = GlobTool()
+        if _ok(glob_tool.name):
+            registry.register(glob_tool)
         for t in [
             TaskCreateTool(task_manager),
             TaskUpdateTool(task_manager),
