@@ -100,6 +100,16 @@ class SessionCompactResult(BaseModel):
     saved_tokens: int
 
 
+class SetPermissionModeCommand(BaseModel):
+    type: Literal["permission.set_mode"] = "permission.set_mode"
+    session_id: str
+    mode: str  # "default" | "accept_edits" | "plan" | "bypass"
+
+
+class SetPermissionModeResult(BaseModel):
+    ok: bool = True
+
+
 # 根据 type 字段决定命令类型的判别联合
 Command = Annotated[
     PingCommand
@@ -110,6 +120,7 @@ Command = Annotated[
     | SessionGetHistoryCommand
     | SessionCloseCommand
     | PermissionRespondCommand
-    | SessionCompactCommand,
+    | SessionCompactCommand
+    | SetPermissionModeCommand,
     Discriminator("type"),
 ]

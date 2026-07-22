@@ -46,3 +46,26 @@ def test_core_started_event_roundtrip() -> None:
     evt2 = CoreStartedEvent.model_validate_json(evt.model_dump_json())
     assert evt2.listen_addr == "127.0.0.1:7437"
     assert evt2.type == "core.started"
+
+
+# 功能：验证 SetPermissionModeCommand 能正常序列化/反序列化，type 字段固定
+# 设计：和仓库里其它 Command 模型一样的判别联合契约测试，确保新命令能被正确路由
+def test_set_permission_mode_command_roundtrip() -> None:
+    from kama_claude.core.bus.commands import SetPermissionModeCommand, SetPermissionModeResult
+    cmd = SetPermissionModeCommand(session_id="sess-1", mode="bypass")
+    data = cmd.model_dump()
+    assert data["type"] == "permission.set_mode"
+    restored = SetPermissionModeCommand.model_validate(data)
+    assert restored.mode == "bypass"
+
+    result = SetPermissionModeResult(ok=True)
+    assert result.ok is True
+
+
+# 功能：验证 SetPermissionModeCommand 的 type 字段默认值为 "permission.set_mode"
+# 设计：type 是 Command union 的判别键，必须与 union 定义完全一致，
+#      否则反序列化时会路由到错误类型，导致 daemon handler 收不到
+def test_set_permission_mode_command_default_type() -> None:
+    from kama_claude.core.bus.commands import SetPermissionModeCommand
+    cmd = SetPermissionModeCommand(session_id="sess-1", mode="plan")
+    assert cmd.type == "permission.set_mode"
