@@ -19,6 +19,7 @@ class GlobParams(BaseModel):
 class GlobTool(BaseTool):
     params_model = GlobParams
     name = "glob"
+    category = "read"
     description = (
         "Find files by name pattern (e.g. '**/*.py', 'src/*.ts'). "
         "Results are sorted by modification time, most recent first. "

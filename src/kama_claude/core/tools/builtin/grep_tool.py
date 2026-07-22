@@ -21,6 +21,7 @@ class GrepParams(BaseModel):
 class GrepTool(BaseTool):
     params_model = GrepParams
     name = "grep"
+    category = "read"
     description = (
         "Search file contents with a regular expression. "
         "Optionally restrict to files matching an include glob (e.g. '*.py'). "

@@ -19,6 +19,7 @@ class DiffParams(BaseModel):
 class DiffTool(BaseTool):
     params_model = DiffParams
     name = "diff"
+    category = "read"
     description = (
         "Show a unified diff between two files (e.g. a file before and after an edit, "
         "or a file in the main worktree vs a task worktree). Output truncated at 200 lines."

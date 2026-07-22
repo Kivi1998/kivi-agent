@@ -8,7 +8,6 @@ from kama_claude.core.bus.events import StepFinishedEvent, StepStartedEvent
 from kama_claude.core.context import ExecutionContext
 from kama_claude.core.events.bus import EventBus
 from kama_claude.core.llm.base import LLMProvider
-from kama_claude.core.tools.invocation import invoke_tool
 from kama_claude.core.tools.registry import ToolRegistry
 import logging
 
@@ -97,13 +96,15 @@ class AgentLoop:
 
             # [act] execute each requested tool; errors become tool results so loop continues
             if response.stop_reason == "tool_use":
-                for tc in response.tool_calls:
-                    result = await invoke_tool(
-                        self._registry, tc, self._bus, context.run_id,
-                        permission_manager=self._permission_manager,
-                        session_id=self._session_id,
-                        hook_engine=self._hook_engine,
-                    )
+                from kama_claude.core.tools.executor import execute_tool_batches, partition_tool_calls
+                batches = partition_tool_calls(response.tool_calls, self._registry)
+                pairs = await execute_tool_batches(
+                    batches, self._registry, self._bus, context.run_id,
+                    permission_manager=self._permission_manager,
+                    session_id=self._session_id,
+                    hook_engine=self._hook_engine,
+                )
+                for tc, result in pairs:
                     context.add_tool_result(tc.id, result.content, is_error=result.is_error)
             elif response.stop_reason == "max_tokens" and response.tool_calls:
                 # Output token limit hit mid-tool-call; input is incomplete.
