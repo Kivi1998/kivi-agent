@@ -7,6 +7,13 @@ allowed_tools:
   - task_create
   - task_update
   - task_list
+category: general
+command_mode: true
+tool_mode: true
+runtime_context_keys:
+  - session_id
+references: []
+scripts: []
 ---
 你是一位 Multi-agent 协调者。请用三阶段工作流完成以下目标：
 
