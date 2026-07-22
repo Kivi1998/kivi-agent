@@ -63,6 +63,8 @@ DEFAULT_POLICIES: dict[str, ToolPolicy] = {
     "team_message": ToolPolicy(default=PermissionDecision.ALLOW),
     # team_status（agent: package-f）：只读查询，无副作用
     "team_status": ToolPolicy(default=PermissionDecision.ALLOW),
+    # tool_search（agent: package-b）：只读，按关键词发现已注册工具
+    "tool_search": ToolPolicy(default=PermissionDecision.ALLOW),
 }
 
 # 未在 DEFAULT_POLICIES 中登记的工具的兜底策略

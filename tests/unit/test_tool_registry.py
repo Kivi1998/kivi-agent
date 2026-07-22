@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from kama_claude.core.tools.base import BaseTool, ToolResult
+from kama_claude.core.tools.builtin.read_file import ReadFileTool
+from kama_claude.core.tools.builtin.write_file import WriteFileTool
 from kama_claude.core.tools.registry import ToolRegistry
 
 
@@ -75,3 +77,44 @@ def test_register_same_name_overwrites() -> None:
     found = registry.get("fake")
     assert found is not None
     assert found.description == "updated"
+
+
+# 功能：验证 deferred=True 注册的工具默认不出现在 tool_schemas() 里
+# 设计：这是"按需暴露"的核心行为——工具存在于 registry（get() 能查到），但不会被推给 LLM，
+#      除非被 mark_discovered 过
+def test_deferred_tool_hidden_from_schemas_until_discovered() -> None:
+    registry = ToolRegistry()
+    registry.register(WriteFileTool(), deferred=True)
+    names = {s["name"] for s in registry.tool_schemas()}
+    assert "write_file" not in names
+    assert registry.get("write_file") is not None  # 仍然可以被直接调用（比如工具搜索到之后）
+
+
+# 功能：验证 mark_discovered 之后，该工具出现在 tool_schemas() 里
+# 设计：覆盖"发现后才暴露"这个状态迁移
+def test_marking_discovered_exposes_schema() -> None:
+    registry = ToolRegistry()
+    registry.register(WriteFileTool(), deferred=True)
+    registry.mark_discovered("write_file")
+    names = {s["name"] for s in registry.tool_schemas()}
+    assert "write_file" in names
+
+
+# 功能：验证非 deferred（默认）注册的工具始终暴露，不受这套机制影响
+# 设计：确保新增的 deferred 参数不改变现有工具（大多数都是默认注册）的既有行为
+def test_non_deferred_tool_always_visible() -> None:
+    registry = ToolRegistry()
+    registry.register(ReadFileTool())
+    names = {s["name"] for s in registry.tool_schemas()}
+    assert "read_file" in names
+
+
+# 功能：验证 search 按名字/描述关键词打分，名字命中排名优先于描述命中
+# 设计：复用包 G 的 SkillLoader.search 同款打分逻辑，覆盖基本检索正确性
+def test_registry_search_finds_by_keyword() -> None:
+    registry = ToolRegistry()
+    registry.register(ReadFileTool(), deferred=True)
+    registry.register(WriteFileTool(), deferred=True)
+    results = registry.search("write")
+    assert len(results) == 1
+    assert results[0].name == "write_file"
