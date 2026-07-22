@@ -17,12 +17,13 @@ from textual.containers import VerticalScroll
 from textual.css.query import NoMatches
 from textual.message import Message
 from textual.widget import Widget
-from textual.widgets import Label, Static, TextArea
+from textual.widgets import Button, Label, Static, TextArea
 
 from kama_claude.core.config import KamaConfig
 from kama_claude.core.skills.loader import SkillLoader
 from kama_claude.core.transport.socket_client import IpcError, SocketClient
 from kama_claude.tui.permission_widgets import PermissionBlock, PermissionSelect
+from kama_claude.tui.plan_dialog import PlanDialog, parse_plan_summary
 from kama_claude.tui.team_tree import TeamTreeState, TeamTreeWidget
 
 
@@ -572,6 +573,31 @@ class KamaTuiApp(App[None]):
             self._update_header("ready")
             self._append(Static(f"[red]send error: {e}[/red]", classes="log-line"))
 
+    # 处理计划对话框的 Accept/Reject 按钮点击
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "plan-accept":
+            await self._send_set_permission_mode("default")
+            try:
+                self.query_one(PlanDialog).remove()
+            except NoMatches:
+                pass
+        elif event.button.id == "plan-reject":
+            try:
+                self.query_one(PlanDialog).remove()
+            except NoMatches:
+                pass
+
+    # 通过协议命令通知 daemon 切换权限模式
+    async def _send_set_permission_mode(self, mode: str) -> None:
+        if self._client is not None and self._session_id is not None:
+            try:
+                await self._client.send_command(
+                    "permission.set_mode",
+                    {"session_id": self._session_id, "mode": mode},
+                )
+            except (IpcError, RuntimeError, OSError):
+                self._append(Static(f"[red]permission.set_mode failed[/red]", classes="log-line"))
+
     # 处理内联审批控件的用户决策：发送 IPC 响应并恢复输入框
     async def on_permission_select_decided(self, msg: PermissionSelect.Decided) -> None:
         tool_use_id = msg.tool_use_id
@@ -862,11 +888,15 @@ class KamaTuiApp(App[None]):
 
         elif t == "tool.call_finished":
             tool_use_id = str(event.get("tool_use_id", ""))
+            tool_name = str(event.get("tool_name", ""))
             elapsed_ms = int(event.get("elapsed_ms") or 0)
             output = str(event.get("output") or "")
             if tool_use_id in self._pending_tool_blocks:
                 tc_done = self._pending_tool_blocks.pop(tool_use_id)
                 tc_done.set_result(output, elapsed_ms)
+            if tool_name == "exit_plan_mode":
+                summary = parse_plan_summary(output)
+                self.mount(PlanDialog(summary), before="#prompt")
 
         elif t == "tool.call_failed":
             tool_use_id = str(event.get("tool_use_id", ""))
