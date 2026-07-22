@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import time
+from pathlib import Path
 from typing import Any
 
 log = logging.getLogger(__name__)
@@ -343,6 +344,7 @@ class KamaTuiApp(App[None]):
     TITLE = "KamaClaude"
     BINDINGS = [
         Binding("ctrl+q", "quit", "quit"),
+        Binding("ctrl+s", "show_sessions", "sessions"),
     ]
     CSS = """
     Screen { background: $background; }
@@ -494,6 +496,15 @@ class KamaTuiApp(App[None]):
             except (IpcError, RuntimeError, OSError):
                 self._append(Static("[yellow]warning: failed to close session[/yellow]"))
         self.exit()
+
+    # 打开会话列表界面，展示历史会话及其检查点进度
+    def action_show_sessions(self) -> None:
+        from kama_claude.core.session.checkpoint import CheckpointStore
+        from kama_claude.core.session.store import SessionStore
+        from kama_claude.tui.session_screen import SessionListScreen
+
+        sessions_root = Path("~/.kama/sessions").expanduser()
+        self.push_screen(SessionListScreen(SessionStore(sessions_root), CheckpointStore(sessions_root)))
 
     # 将输入框提交内容发送给当前 chat session；用 worker 发送，避免 await 阻塞 App 消息泵
     async def on_chat_text_area_submitted(self, event: ChatTextArea.Submitted) -> None:
