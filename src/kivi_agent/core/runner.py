@@ -256,6 +256,33 @@ class AgentRunner:
         # rewind_file（agent: package-c）
         if _ok("rewind_file"):
             registry.register(RewindFileTool(self._file_history))
+        # ===== 业务 Tool 注册（agent: package-c-v1） =====
+        # 按 docs/contracts/v1.md §1 锁定的 6 个业务 Tool 名称，演示版 100% Mock。
+        # 注释锚点格式：# <tool_name>（agent: package-c-v1）便于冲突 merge 时定位。
+        from kivi_agent.core.business.echarts_render import EchartsRenderTool
+        from kivi_agent.core.business.memory_recall import MemoryRecallTool
+        from kivi_agent.core.business.memory_save import MemorySaveTool
+        from kivi_agent.core.business.query_database import QueryDatabaseTool
+        from kivi_agent.core.business.rag_query import RagQueryTool
+        from kivi_agent.core.business.web_search import WebSearchTool
+        # web_search（agent: package-c-v1）
+        if _ok("web_search"):
+            registry.register(WebSearchTool())
+        # rag_query（agent: package-c-v1）
+        if _ok("rag_query"):
+            registry.register(RagQueryTool())
+        # query_database（agent: package-c-v1）
+        if _ok("query_database"):
+            registry.register(QueryDatabaseTool())
+        # echarts_render（agent: package-c-v1）
+        if _ok("echarts_render"):
+            registry.register(EchartsRenderTool())
+        # memory_save（agent: package-c-v1）
+        if _ok("memory_save"):
+            registry.register(MemorySaveTool())
+        # memory_recall（agent: package-c-v1）
+        if _ok("memory_recall"):
+            registry.register(MemoryRecallTool())
         return registry
 
     # 执行一次完整的 agent run（委托给 run_and_capture，忽略返回值）
