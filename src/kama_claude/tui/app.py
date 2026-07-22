@@ -23,6 +23,7 @@ from kama_claude.core.config import KamaConfig
 from kama_claude.core.skills.loader import SkillLoader
 from kama_claude.core.transport.socket_client import IpcError, SocketClient
 from kama_claude.tui.permission_widgets import PermissionBlock, PermissionSelect
+from kama_claude.tui.team_tree import TeamTreeState, TeamTreeWidget
 
 
 def _preview(s: str, n: int) -> str:
@@ -404,6 +405,7 @@ class KamaTuiApp(App[None]):
         self._slash_items: list[tuple[str, str]] = []
         self._subagent_run_ids: dict[str, str] = {}  # child run_id -> description
         self._subagent_start_times: dict[str, float] = {}  # child run_id -> start time
+        self._team_tree_state = TeamTreeState()
 
     def compose(self) -> ComposeResult:
         yield Label("[bold]KamaClaude[/bold]  [dim]connecting...[/dim]", id="header")
@@ -610,6 +612,13 @@ class KamaTuiApp(App[None]):
             self._current_llm.finalize_markdown()
         self._current_llm = None
 
+    # 若团队树组件已挂载则刷新其展示；未挂载（用户还没打开）时跳过
+    def _refresh_team_tree_if_mounted(self) -> None:
+        try:
+            self.query_one(TeamTreeWidget).refresh_tree()
+        except NoMatches:
+            pass
+
     # 将选择控件挂载到 Screen 顶层（#prompt 之前），避免 VerticalScroll 争抢焦点
     def _mount_permission_select(self, select: PermissionSelect) -> None:
         self.mount(select, before="#prompt")
@@ -799,6 +808,8 @@ class KamaTuiApp(App[None]):
                 f"[dim]┌─[/dim] [cyan]{_preview(description, 72)}[/cyan]  [dim]{short_id}[/dim]",
                 classes="log-line",
             ))
+            self._team_tree_state.on_subagent_started(run_id=run_id)
+            self._refresh_team_tree_if_mounted()
 
         elif t == "subagent.finished":
             run_id = event.get("run_id", "")
@@ -817,6 +828,16 @@ class KamaTuiApp(App[None]):
                     f"[dim]└─[/dim] [bold red]✗[/bold red] {desc_part}",
                     classes="log-line",
                 ))
+            self._team_tree_state.on_subagent_finished(run_id=run_id, status=status)
+            self._refresh_team_tree_if_mounted()
+
+        elif t == "team.created":
+            self._team_tree_state.on_team_created(
+                team_id=str(event.get("team_id", "")),
+                goal=str(event.get("goal", "")),
+                members=list(event.get("members", [])),
+            )
+            self._refresh_team_tree_if_mounted()
 
         elif t == "step.started":
             run_id = event.get("run_id", "")
