@@ -5,8 +5,13 @@ import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
-from kama_claude.core.bus.events import RunFinishedEvent, RunStartedEvent
+from kama_claude.core.bus.events import (
+    AskUserRequestedEvent,
+    RunFinishedEvent,
+    RunStartedEvent,
+)
 from kama_claude.core.compact.compactor import Compactor
 from kama_claude.core.config import KamaConfig
 from kama_claude.core.context import ExecutionContext
@@ -30,6 +35,7 @@ from kama_claude.core.subagent.registry import BackgroundTaskRegistry
 from kama_claude.core.subagent.tool import AgentResultTool, SpawnAgentTool
 from kama_claude.core.task.manager import TaskManager
 from kama_claude.core.tools.builtin import (
+    AskUserTool,
     BashTool,
     ExitPlanModeTool,
     ListDirTool,
@@ -41,6 +47,7 @@ from kama_claude.core.tools.builtin import (
     TaskUpdateTool,
     WriteFileTool,
 )
+from kama_claude.core.tools.builtin.ask_user import QuestionStore
 from kama_claude.core.tools.registry import ToolRegistry
 from kama_claude.core.trace.provider import TracingProvider
 from kama_claude.core.trace.writer import TraceWriter
@@ -69,6 +76,7 @@ class AgentRunner:
         runs_dir: Path | None = None,
         trace: TraceWriter | None = None,
         permission_manager: PermissionManager | None = None,
+        question_store: QuestionStore | None = None,
         mcp_manager: McpServerManager | None = None,
     ) -> None:
         self._config = config
@@ -79,6 +87,9 @@ class AgentRunner:
         self._trace = trace
         self._permission_manager = permission_manager
         self._mcp_manager = mcp_manager
+        # 跨 run 共享的 ask_user 问题挂起注册表（所有 ask_user 工具共用同一份，
+        # 这样 spawn_agent 子 run 也能复用主 run 的 TUI 弹窗通道）
+        self._question_store = question_store or QuestionStore()
         # 跨 run 共享的后台 subagent 任务注册表
         self._task_registry = BackgroundTaskRegistry()
         # package-f: 团队管理器，跨 _build_registry() 调用持久化，使同一 run 内后续
@@ -111,6 +122,7 @@ class AgentRunner:
         child_runs_dir: Path | None = None,
         session_id: str = "",
         tool_whitelist: list[str] | None = None,
+        question_store: QuestionStore | None = None,
     ) -> ToolRegistry:
         allowed: set[str] | None = set(tool_whitelist) if tool_whitelist else None
 
@@ -206,6 +218,25 @@ class AgentRunner:
             for mcp_tool in self._mcp_manager.get_tools():
                 if _ok(mcp_tool.name):
                     registry.register(mcp_tool)
+        # ask_user（agent: package-c）
+        qs = question_store if question_store is not None else self._question_store
+        if _ok("ask_user"):
+
+            async def _emit_ask_user(event: dict[str, Any]) -> None:
+                if bus is None:
+                    return
+                await bus.publish(
+                    AskUserRequestedEvent(
+                        run_id=run_id or "",
+                        request_id=str(event.get("request_id", "")),
+                        question=str(event.get("question", "")),
+                        options=list(event.get("options", []) or []),
+                        session_id=session_id,
+                        ts=_now(),
+                    )
+                )
+
+            registry.register(AskUserTool(qs, event_emitter=_emit_ask_user))
         return registry
 
     # 执行一次完整的 agent run（委托给 run_and_capture，忽略返回值）
@@ -293,6 +324,7 @@ class AgentRunner:
                     child_runs_dir=child_runs_dir,
                     session_id=session_id_str,
                     tool_whitelist=tool_whitelist,
+                    question_store=self._question_store,
                 )
                 # 把当前 registry 的工具分类注入 permission_manager，供 PermissionMode 覆盖用
                 if self._permission_manager is not None:

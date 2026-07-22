@@ -309,3 +309,40 @@ async def test_session_registers_note_save_tool(tmp_path: Path) -> None:
     await runner.run_and_capture("remember", run_id="run-1", session=session, store=store)
 
     assert "Use Python 3.12" in store.read_notes("sess-1")
+
+
+# 功能：验证 runner._build_registry 在传入 question_store 时把 ask_user 注册进 registry
+# 设计：用最小可行配置构造 runner，断言 registry.get("ask_user") 返回非 None 且 name 正确，
+#      覆盖"runner 装配 ask_user 工具"这条主干路径
+def test_build_registry_registers_ask_user(tmp_path: Path) -> None:
+    from kama_claude.core.task.manager import TaskManager
+    from kama_claude.core.tools.builtin.ask_user import AskUserTool, QuestionStore
+
+    runner = AgentRunner(_config(), runs_dir=tmp_path)
+    question_store = QuestionStore()
+    registry = runner._build_registry(
+        TaskManager(tmp_path / ".tasks"),
+        question_store=question_store,
+    )
+    tool = registry.get("ask_user")
+    assert tool is not None
+    assert tool.name == "ask_user"
+    assert isinstance(tool, AskUserTool)
+
+
+# 功能：验证 tool_whitelist 不包含 ask_user 时该工具不会被注册
+# 设计：whitelist=["bash"] 时调 _build_registry，断言 registry.get("ask_user") 为 None，
+#      覆盖"白名单过滤对 ask_user 也生效"这条一致性约束
+def test_build_registry_respects_whitelist_for_ask_user(tmp_path: Path) -> None:
+    from kama_claude.core.task.manager import TaskManager
+    from kama_claude.core.tools.builtin.ask_user import QuestionStore
+
+    runner = AgentRunner(_config(), runs_dir=tmp_path)
+    question_store = QuestionStore()
+    registry = runner._build_registry(
+        TaskManager(tmp_path / ".tasks"),
+        question_store=question_store,
+        tool_whitelist=["bash"],
+    )
+    assert registry.get("ask_user") is None
+    assert registry.get("bash") is not None

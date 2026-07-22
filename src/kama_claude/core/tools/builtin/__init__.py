@@ -1,3 +1,4 @@
+from kama_claude.core.tools.builtin.ask_user import AskUserTool
 from kama_claude.core.tools.builtin.bash import BashTool
 from kama_claude.core.tools.builtin.exit_plan_mode import ExitPlanModeTool
 from kama_claude.core.tools.builtin.list_dir import ListDirTool
@@ -10,6 +11,7 @@ from kama_claude.core.tools.builtin.task_update import TaskUpdateTool
 from kama_claude.core.tools.builtin.write_file import WriteFileTool
 
 __all__ = [
+    "AskUserTool",
     "BashTool",
     "ExitPlanModeTool",
     "ListDirTool",

@@ -188,6 +188,16 @@ class PermissionDeniedEvent(BaseModel):
     ts: str
 
 
+class AskUserRequestedEvent(BaseModel):
+    type: Literal["ask_user.requested"] = "ask_user.requested"
+    run_id: str
+    request_id: str
+    question: str
+    options: list[str]
+    session_id: str
+    ts: str
+
+
 class SubagentStartedEvent(BaseModel):
     type: Literal["subagent.started"] = "subagent.started"
     run_id: str          # 子 agent run_id
@@ -236,6 +246,7 @@ Event = Annotated[
     | PermissionRequestedEvent
     | PermissionGrantedEvent
     | PermissionDeniedEvent
+    | AskUserRequestedEvent
     | SubagentStartedEvent
     | SubagentFinishedEvent
     | SkillInvokedEvent,
