@@ -69,6 +69,22 @@ DEFAULT_POLICIES: dict[str, ToolPolicy] = {
     "ask_user": ToolPolicy(default=PermissionDecision.ASK),
     # rewind_file（agent: package-c）：覆盖文件内容，破坏性操作需审批
     "rewind_file": ToolPolicy(default=PermissionDecision.ASK),
+    # ===== 业务 Tool 策略（agent: package-c-v1） =====
+    # 按 docs/contracts/v1.md §1 锁定的 6 个业务 Tool。演示场景统一用 ALLOW，
+    # 真实场景应通过项目级 .kivi/config.toml 一次性放行（按 v1 §7.2 C 报告约定）。
+    # 注释锚点格式：# <tool_name>（agent: package-c-v1）便于冲突 merge 时定位。
+    # web_search（agent: package-c-v1）
+    "web_search":     ToolPolicy(default=PermissionDecision.ALLOW),
+    # rag_query（agent: package-c-v1）
+    "rag_query":      ToolPolicy(default=PermissionDecision.ALLOW),
+    # query_database（agent: package-c-v1）
+    "query_database": ToolPolicy(default=PermissionDecision.ALLOW),
+    # echarts_render（agent: package-c-v1）
+    "echarts_render": ToolPolicy(default=PermissionDecision.ALLOW),
+    # memory_save（agent: package-c-v1）：写入是写操作，默认谨慎
+    "memory_save":    ToolPolicy(default=PermissionDecision.ASK),
+    # memory_recall（agent: package-c-v1）
+    "memory_recall":  ToolPolicy(default=PermissionDecision.ALLOW),
 }
 
 # 未在 DEFAULT_POLICIES 中登记的工具的兜底策略
