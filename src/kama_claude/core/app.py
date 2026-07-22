@@ -32,6 +32,8 @@ from kama_claude.core.bus.commands import (
     SessionGetHistoryResult,
     SessionSendMessageCommand,
     SessionSendMessageResult,
+    SetPermissionModeCommand,
+    SetPermissionModeResult,
 )
 from kama_claude.core.bus.envelope import EventPushEnvelope
 from kama_claude.core.config import KamaConfig, get_config
@@ -40,6 +42,7 @@ from kama_claude.core.llm.factory import build_provider
 from kama_claude.core.logging_setup import setup_logging
 from kama_claude.core.mcp.server import McpServerManager
 from kama_claude.core.permissions.manager import PermissionManager
+from kama_claude.core.permissions.modes import PermissionMode
 from kama_claude.core.permissions.storage import load_policy_file
 from kama_claude.core.runner import AgentRunner
 from kama_claude.core.runs import events_file, new_run_id
@@ -139,6 +142,21 @@ class CoreApp:
             return PermissionRespondResult()
         self._permission_manager.respond(cmd.tool_use_id, cmd.decision)
         return PermissionRespondResult()
+
+    # 切换指定 session 的权限模式（DEFAULT/ACCEPT_EDITS/PLAN/BYPASS）
+    async def _set_permission_mode_handler(self, params: dict[str, Any]) -> SetPermissionModeResult:
+        cmd = SetPermissionModeCommand.model_validate(params)
+        if self._permission_manager is None:
+            logger.error("permission.set_mode: PermissionManager not initialized")
+            return SetPermissionModeResult(ok=False)
+        try:
+            mode = PermissionMode(cmd.mode)
+        except ValueError:
+            logger.warning("permission.set_mode: invalid mode %r", cmd.mode)
+            return SetPermissionModeResult(ok=False)
+        self._permission_manager.set_mode(mode)
+        logger.info("permission mode changed to %s (session=%s)", mode.value, cmd.session_id)
+        return SetPermissionModeResult(ok=True)
 
     # 手动压缩 session thread，将摘要持久化写入 thread.jsonl
     async def _session_compact_handler(self, params: dict[str, Any]) -> SessionCompactResult:
@@ -268,6 +286,7 @@ class CoreApp:
         server.register("session.close", self._session_close_handler)
         server.register("permission.respond", self._permission_respond_handler)
         server.register("session.compact", self._session_compact_handler)
+        server.register("permission.set_mode", self._set_permission_mode_handler)
 
         addr = await server.start()
         logger.info("kama-core %s listening addr=%s", kama_claude.__version__, addr)

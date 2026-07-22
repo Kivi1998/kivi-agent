@@ -46,6 +46,20 @@ class SessionStore:
         data = json.loads((self.session_dir(sid) / "meta.json").read_text(encoding="utf-8"))
         return Session.from_dict(data)
 
+    # 枚举所有已创建的 session，按 updated_at 倒序返回（最近使用的在前）
+    def list_sessions(self) -> list[Session]:
+        sessions: list[Session] = []
+        if not self._root.exists():
+            return sessions
+        for meta_path in self._root.glob("*/meta.json"):
+            try:
+                data = json.loads(meta_path.read_text(encoding="utf-8"))
+                sessions.append(Session.from_dict(data))
+            except Exception:
+                logger.warning("skip unreadable session meta: %s", meta_path)
+        sessions.sort(key=lambda s: s.updated_at, reverse=True)
+        return sessions
+
     # 追加一条 Anthropic API 消息到 thread.jsonl
     def append_message(
         self,
