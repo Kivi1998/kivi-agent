@@ -7,7 +7,7 @@
 
 **与 core/evaluation/ 的边界**（重要）：
 - 本包是**顶层包** `kivi_agent.evaluation`，不是 `kivi_agent.core.evaluation`
-- 不依赖 core/ 内部实现细节（仅依赖 `core/events/bus.py::EventBus` 与 `core/bus/events.py` 中的事件类）
+- 不依赖 core/ 内部实现细节（仅依赖 EventBus + 事件类）
 - A 阶段修改 `core/` 不会污染本包；本包扩展不会污染 A 阶段
 
 **演示版**（当前阶段）：

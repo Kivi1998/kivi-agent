@@ -13,7 +13,6 @@ from typing import Any
 
 import pytest
 
-
 # ---- 契约字面值（来自 docs/contracts/v1.md） ---------------------------------
 
 #: v1 §1 — 6 个冻结的业务 Tool 名称

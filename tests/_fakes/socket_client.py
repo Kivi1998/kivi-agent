@@ -17,7 +17,6 @@ import uuid
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-
 type EventHandler = Callable[[dict[str, Any]], Awaitable[None]]
 
 

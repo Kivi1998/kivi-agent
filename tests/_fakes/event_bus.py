@@ -10,15 +10,14 @@ from __future__ import annotations
 import logging
 from collections import Counter
 from collections.abc import Awaitable, Callable
-from enum import Enum
-from typing import Any
+from enum import StrEnum
 
 from pydantic import BaseModel
 
 log = logging.getLogger(__name__)
 
 
-class FaultMode(str, Enum):
+class FaultMode(StrEnum):
     """handler 异常的故障注入模式。"""
 
     OFF = "off"  # 正常

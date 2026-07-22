@@ -19,7 +19,6 @@ from kivi_agent.evaluation.contract_version import (
     current_schema_version,
 )
 
-
 # ---- 公共 API 守门 --------------------------------------------------------
 
 # 功能：验证 current_schema_version() 持续返回 1（v1 冻结）

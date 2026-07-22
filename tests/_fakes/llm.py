@@ -13,7 +13,6 @@
 """
 from __future__ import annotations
 
-import asyncio
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -155,7 +154,7 @@ class FakeLlmProvider:
         tool_name: str,
         tool_input: dict[str, Any],
         text_prefix: str = "I'll check that.",
-    ) -> "FakeLlmProvider":
+    ) -> FakeLlmProvider:
         scripted = [
             LlmScriptedResponse(
                 text=text_prefix,

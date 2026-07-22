@@ -20,7 +20,6 @@ from kivi_agent.evaluation import (
     EvalEmitter,
     EvalEmitterConfig,
     JsonlEmitterBackend,
-    RedisStreamsEmitterBackend,
     assert_schema_version,
     current_schema_version,
     redis_available,  # noqa: F401  验证公开 API
@@ -32,7 +31,6 @@ from kivi_agent.evaluation.emitter import (
     _event_type_of,
     _jsonify,
 )
-
 
 # ---- 当前 schema_version 守门 -----------------------------------------------
 
@@ -165,11 +163,10 @@ def test_eval_emitter_default_backend_is_jsonl(tmp_path: Path) -> None:
 def test_eval_emitter_redis_fallback_when_package_missing(
     tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
-    from tests._fakes import FakeEventBus
-
     # 如果测试环境装了 redis，强制走"假定不可用"分支
     # 用 monkeypatch 让 redis_available() 返回 False
     import kivi_agent.evaluation.emitter as emitter_mod
+    from tests._fakes import FakeEventBus
 
     original_available = emitter_mod._REDIS_AVAILABLE
     emitter_mod._REDIS_AVAILABLE = False
@@ -192,9 +189,8 @@ def test_eval_emitter_redis_fallback_when_package_missing(
 def test_eval_emitter_redis_backend_chosen_when_available(
     tmp_path: Path,
 ) -> None:
-    from tests._fakes import FakeEventBus
-
     import kivi_agent.evaluation.emitter as emitter_mod
+    from tests._fakes import FakeEventBus
 
     # monkeypatch：让 _REDIS_AVAILABLE=True，并给 RedisStreamsEmitterBackend 注入 stub
     class _StubRedis:
@@ -249,7 +245,6 @@ async def test_eval_emitter_backend_failure_does_not_break_publisher(
 # 功能：验证 import kivi_agent.evaluation 不依赖 redis
 # 设计：import 时间不应触发 redis import（演示版隔离）
 def test_evaluation_import_does_not_load_redis() -> None:
-    import sys
 
     # 移除 redis（如已加载）以观察 import 行为
     # 注：实际测试中不一定能完全隔离，但构造期应不抛

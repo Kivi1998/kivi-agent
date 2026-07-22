@@ -12,20 +12,15 @@
 """
 from __future__ import annotations
 
-from typing import Any, ClassVar
-
 import pytest
 
 from tests.contract.conftest import (
-    V1_BUSINESS_TOOL_NAMES,
-    V1_DEPRECATED_TOOL_NAMES,
     V1_SCHEMA_VERSION,
     V1_TOOL_SCHEMA_FIELD,
     V1_TOOL_SCHEMA_FIELD_FORBIDDEN,
     ExpectedAgentProfile,
     ExpectedRunContext,
 )
-
 
 # ---- §1 业务 Tool 名称冻结 -------------------------------------------------
 
@@ -86,7 +81,6 @@ def test_v1_business_tool_names_defined_in_code(v1_business_tool_names: tuple[st
 def test_v1_deprecated_tool_names_not_reintroduced(v1_deprecated_tool_names: tuple[str, ...]) -> None:
     """§1 反向断言 — 旧 Tool 名不应回潮。"""
     # 只扫描已存在的核心模块；新模块 C 阶段才会建
-    import re
     from pathlib import Path
 
     repo_root = Path(__file__).resolve().parents[2]
@@ -260,7 +254,8 @@ def test_v1_agent_profile_base_five_fields_preserved() -> None:
 # ---- §4 Tool Schema 字段名（input_schema） -----------------------------------
 
 # 功能：验证 BaseTool 子类用 input_schema 而不是 params_schema
-# 设计：扫描所有 BaseTool 子类，断言每个子类的类属性不含 params_schema
+# 设计：扫描所有 BaseTool 子类，断言每个子类的类属性不含 params_schema；
+#       input_schema 允许类属性或 __init__ 中赋值（McpTool 走 __init__ 注入）
 def test_v1_base_tool_uses_input_schema_not_params_schema() -> None:
     """§4 — Tool Schema 统一使用 `input_schema`，禁止 `params_schema`。"""
     from kivi_agent.core.tools import BaseTool
@@ -277,17 +272,37 @@ def test_v1_base_tool_uses_input_schema_not_params_schema() -> None:
     # 必须至少有 BaseTool 自己（否则说明继承树断）
     assert BaseTool in all_tools
 
-    # 每个具体子类（不是 BaseTool 自己）必须有 input_schema 类属性
+    # 每个具体子类（不是 BaseTool 自己）必须有 input_schema
+    # 兼容两种模式：
+    # 1. 类属性 `input_schema = {...}`（典型）
+    # 2. __init__ 中 `self.input_schema = ...`（McpTool 走这种）
+    # 两种都通过 hasattr(sub, 'input_schema') 或 检查 __init__ 源码
     for sub in all_tools:
         if sub is BaseTool:
             continue
-        assert hasattr(sub, V1_TOOL_SCHEMA_FIELD), (
-            f"v1 §4 违反: {sub.__module__}.{sub.__name__} 缺少 {V1_TOOL_SCHEMA_FIELD} 属性"
+        has_class_attr = hasattr(sub, V1_TOOL_SCHEMA_FIELD)
+        has_init_assignment = _init_assigns_attribute(sub, V1_TOOL_SCHEMA_FIELD)
+        assert has_class_attr or has_init_assignment, (
+            f"v1 §4 违反: {sub.__module__}.{sub.__name__} 缺少 {V1_TOOL_SCHEMA_FIELD}；"
+            f"需要类属性或在 __init__ 中 self.{V1_TOOL_SCHEMA_FIELD} = ..."
         )
         # 禁止把 params_schema 作为类属性（避免和 input_schema 混用）
         assert not hasattr(sub, V1_TOOL_SCHEMA_FIELD_FORBIDDEN), (
             f"v1 §4 违反: {sub.__module__}.{sub.__name__} 仍使用 {V1_TOOL_SCHEMA_FIELD_FORBIDDEN}"
         )
+
+
+# 检查某个类的 __init__ 方法中是否给 self.attr 赋值
+def _init_assigns_attribute(cls: type, attr: str) -> bool:
+    """检查 `cls.__init__` 源码中是否出现 `self.{attr} = ...` 赋值。"""
+    import inspect
+
+    try:
+        source = inspect.getsource(cls.__init__)
+    except (OSError, TypeError):
+        return False
+    # 兼容 self.attr = 和 self.attr:  = 两种写法
+    return f"self.{attr}" in source
 
 
 # 功能：验证 BaseTool 自身就定义了 input_schema

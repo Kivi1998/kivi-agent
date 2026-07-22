@@ -12,7 +12,6 @@
 from __future__ import annotations
 
 import json
-from typing import Any
 
 import pytest
 
@@ -23,7 +22,6 @@ from kivi_agent.evaluation.judge import (
     _parse_judge_response,
 )
 from tests._fakes import FakeLlmProvider, LlmScriptedResponse
-
 
 # ---- 必填占位符守门 -------------------------------------------------------
 

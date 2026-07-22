@@ -29,7 +29,6 @@ from tests._fakes.business_tools import (
 )
 from tests._fakes.event_bus import FaultMode
 
-
 # ---- import 路径稳定 -------------------------------------------------------
 
 # 功能：验证 tests._fakes 的对外 import 路径不漂移
