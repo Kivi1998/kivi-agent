@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from kama_claude.tui.team_tree import TeamTreeState
+from kivi_agent.tui.team_tree import TeamTreeState
 
 
 # 功能：验证收到 TeamCreatedEvent 后，状态里出现对应团队和全部成员，初始状态为 "pending"

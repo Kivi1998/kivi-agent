@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from kama_claude.core.tools.builtin.enter_worktree import EnterWorktreeTool
-from kama_claude.core.tools.builtin.exit_worktree import ExitWorktreeTool
+from kivi_agent.core.tools.builtin.enter_worktree import EnterWorktreeTool
+from kivi_agent.core.tools.builtin.exit_worktree import ExitWorktreeTool
 
 
 @pytest.fixture
@@ -36,7 +36,7 @@ async def test_exit_worktree_removes_directory(repo: Path) -> None:
     enter_result = await EnterWorktreeTool().invoke({"repo_root": str(repo), "name": "demo task 2"})
     path_str = enter_result.content.strip().splitlines()[-1]
     exit_result = await ExitWorktreeTool().invoke(
-        {"repo_root": str(repo), "path": path_str, "branch": f"kama-agent-{'demo-task-2'}"}
+        {"repo_root": str(repo), "path": path_str, "branch": f"kivi-agent-{'demo-task-2'}"}
     )
     assert not exit_result.is_error
     assert not Path(path_str).exists()

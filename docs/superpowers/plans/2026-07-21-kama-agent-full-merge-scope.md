@@ -1,6 +1,6 @@
 # kamaAgent 个人版全功能合并 — 总览与分包计划
 
-> **For agentic workers:** 这是一份索引/总览文档，不是可直接逐步执行的 TDD 任务清单。已经具备完整 TDD 步骤、可直接执行的是 [`2026-07-20-kama-agent-minimal-loop.md`](2026-07-20-kama-agent-minimal-loop.md)（下称"基础闭环计划"）。本文档把 mewcode 全部 44 项能力（M01～M44，不含企业治理 E01～E25）逐一映射到 KamaClaude 的具体目标模块，分成 8 个子计划包。每个子计划包在被执行前，应先用 superpowers:writing-plans 展开成和基础闭环计划同等粒度（每步完整代码、失败测试→实现→通过测试→提交）的独立文件。
+> **For agentic workers:** 这是一份索引/总览文档，不是可直接逐步执行的 TDD 任务清单。已经具备完整 TDD 步骤、可直接执行的是 [`2026-07-20-kivi-agent-minimal-loop.md`](2026-07-20-kivi-agent-minimal-loop.md)（下称"基础闭环计划"）。本文档把 mewcode 全部 44 项能力（M01～M44，不含企业治理 E01～E25）逐一映射到 kivi-agent 的具体目标模块，分成 8 个子计划包。每个子计划包在被执行前，应先用 superpowers:writing-plans 展开成和基础闭环计划同等粒度（每步完整代码、失败测试→实现→通过测试→提交）的独立文件。
 
 **为什么要分包而不是一份 130 步的巨型计划**：这是 superpowers:writing-plans 的 Scope Check 要求——覆盖多个独立子系统的 spec 应该拆成多份子计划，每份都能独立产出可运行、可测试的软件。这里的 8 个包彼此依赖较弱（Teams 依赖 Subagent 已有能力但不依赖 Skills/MCP 增强），可以按需单独展开、单独执行、单独验收。
 
@@ -10,7 +10,7 @@
 
 ## 全景表：M01～M44 全部映射到位
 
-| 编号 | mewcode 能力 | KamaClaude 现状 | 目标改动 | 所属子计划包 |
+| 编号 | mewcode 能力 | kivi-agent 现状 | 目标改动 | 所属子计划包 |
 |---|---|---|---|---|
 | M01 | 多模型 ProviderConfig | 只有 Anthropic | Task 6-7（基础闭环）已做 OpenAI 兼容一种协议 | 基础闭环（已完成设计） |
 | M02 | Anthropic 流式适配 | 已有 `AnthropicProvider`，含重试 | 保留，无需改动 | — |
@@ -39,7 +39,7 @@
 | M30 | 自动记忆 | 无长期记忆模块，只有 session 内 `notes.md` | 新增 `core/memory/`：`.md`文件+索引+自动抽取+召回注入 | 包 E |
 | M31 | 会话选择与恢复界面 | TUI 无 Session 列表/切换界面，只有 CLI `--replay` | 新增 TUI Screen：列出/切换/恢复历史会话 | 包 H |
 | M32-M36 | 团队/协调者/消息/工作树隔离 | 已有单层 Subagent（`spawn_agent`+`BackgroundTaskRegistry`，深度上限2），无"团队"概念 | 在现有 Subagent 基础上加 Team/Coordinator/Mailbox | 包 F |
-| M37 | 技能安装 | `SkillLoader`只会从本地 `.kama/skills/`/`~/.kama/skills/`加载，无安装能力 | 新增 `skills/install.py`：从 GitHub 拉取+校验+原子落地 | 包 G |
+| M37 | 技能安装 | `SkillLoader`只会从本地 `.kivi/skills/`/`~/.kivi/skills/`加载，无安装能力 | 新增 `skills/install.py`：从 GitHub 拉取+校验+原子落地 | 包 G |
 | M38 | 技能搜索与加载 | `SkillLoader.resolve/list_all_skills`已有基本查找 | 加"关键词搜索"（复用包 B 的 tool_search 打分思路） | 包 G |
 | M39 | MCP HTTP/SSE | 已支持 stdio + TCP，无 HTTP/SSE | 新增 `connect_http`（streamable_http）传输 | 包 G |
 | M40 | MCP 密钥引用 | `McpServerConfig`里 `env: dict[str,str]`是明文 | 改为支持 `${SECRET:NAME}`引用，运行时从环境变量解析，不落盘明文 | 包 G |
@@ -54,13 +54,13 @@
 
 ### 已完成设计并可直接执行
 
-**基础闭环计划**（[`2026-07-20-kama-agent-minimal-loop.md`](2026-07-20-kama-agent-minimal-loop.md)，11 个任务）
+**基础闭环计划**（[`2026-07-20-kivi-agent-minimal-loop.md`](2026-07-20-kivi-agent-minimal-loop.md)，11 个任务）
 覆盖 M01/M03/M04（部分）、M09-M12、M17-M18、M23-M24（部分）。这是唯一已经写到"每步完整代码"粒度、可以直接丢给 coding agent 执行的文件。
 
 ### 已展开为完整 TDD 计划
 
-- **包 D**（[`2026-07-21-kama-agent-package-d-permissions-hooks.md`](2026-07-21-kama-agent-package-d-permissions-hooks.md)，8 个任务）——权限模式 + 钩子
-- **包 E**（[`2026-07-21-kama-agent-package-e-context-memory.md`](2026-07-21-kama-agent-package-e-context-memory.md)，7 个任务）——上下文韧性 + 长期记忆
+- **包 D**（[`2026-07-21-kivi-agent-package-d-permissions-hooks.md`](2026-07-21-kivi-agent-package-d-permissions-hooks.md)，8 个任务）——权限模式 + 钩子
+- **包 E**（[`2026-07-21-kivi-agent-package-e-context-memory.md`](2026-07-21-kivi-agent-package-e-context-memory.md)，7 个任务）——上下文韧性 + 长期记忆
 
 两份都已经是和基础闭环计划同等粒度（完整代码+测试+commit），可以直接执行。**包 D 的 Task D1 新增了 `BaseTool.category` 字段，这是和包 B 之间新发现的耦合点**——两包并行执行时务必对齐字段名和取值（`"read"|"write"|"command"|"other"`），细节见包 D 文档的 Global Constraints。
 
@@ -68,7 +68,7 @@
 
 **包 B：模型能力与工具执行增强**（对应 M05-M08）
 - 目标文件：`core/llm/catalog.py`（新建，上下文窗口配置+探测）、`core/llm/streaming.py`（新建，`StreamCollector`抽象，`AnthropicProvider`/`OpenAICompatProvider`改为复用它）、`core/tools/executor.py`（新建，`partition_tool_calls`+并发批次）、`core/tools/builtin/tool_search.py`（新建）、`core/tools/registry.py`（改，加`should_defer`/`mark_discovered`/`search`）
-- 关键设计点：并发安全性判断复用 mewcode 的"`category=="read"`才能并发"规则；KamaClaude 现有工具里 `read_file`/`list_dir`/`glob`/`grep`/`diff` 应标为 `category="read"`，`bash`/`write_file`/`edit_file` 保持串行
+- 关键设计点：并发安全性判断复用 mewcode 的"`category=="read"`才能并发"规则；kivi-agent 现有工具里 `read_file`/`list_dir`/`glob`/`grep`/`diff` 应标为 `category="read"`，`bash`/`write_file`/`edit_file` 保持串行
 - 依赖：无前置依赖，可独立展开
 
 **包 C：交互工具与文件安全**（对应 M13/M15/M16）
@@ -88,7 +88,7 @@
 
 **包 F：多 Agent 团队协作**（对应 M32-M36）
 - 目标文件：`core/teams/models.py`（新建，`AgentTeam`/`TeammateInfo`）、`core/teams/mailbox.py`（新建，文件系统邮箱，直接复用 mewcode 的 `O_CREAT|O_EXCL` 自旋锁设计——这部分是通用的跨进程互斥技巧，不依赖 mewcode 私有类型，可以直接迁移思路）、`core/teams/manager.py`（新建）、`core/tools/builtin/team_create.py`/`team_message.py`（新建）
-- 关键设计点：只做 `spawn_inprocess` 一种后端（`asyncio.create_task`同进程协程），不做 mewcode 的 `spawn_tmux`（需要用户本机装 tmux，个人闭环没必要），团队本质是"KamaClaude 已有的 Subagent 机制 + mailbox 通信 + 深度限制放宽"
+- 关键设计点：只做 `spawn_inprocess` 一种后端（`asyncio.create_task`同进程协程），不做 mewcode 的 `spawn_tmux`（需要用户本机装 tmux，个人闭环没必要），团队本质是"kivi-agent 已有的 Subagent 机制 + mailbox 通信 + 深度限制放宽"
 - 依赖：建议在包 D（Hooks）之后展开，团队协调策略后续可以用钩子约束"协调者只能调度不能编码"
 
 **包 G：技能分发与 MCP 扩展**（对应 M37-M40）
@@ -169,7 +169,7 @@
 
 分工到人之后，**每个 agent 拿到的不是"包 X 做完"这么模糊的目标**，而是：
 
-1. 先用 superpowers:writing-plans 把自己负责的包，从本文档"目标文件+关键设计点"的粒度，展开成和基础闭环计划同等细节的独立任务文件（`docs/superpowers/plans/2026-07-21-kama-agent-package-<b/c/d/e/f/g/h>.md`），每步要有完整代码、失败测试→实现→通过测试→commit。
+1. 先用 superpowers:writing-plans 把自己负责的包，从本文档"目标文件+关键设计点"的粒度，展开成和基础闭环计划同等细节的独立任务文件（`docs/superpowers/plans/2026-07-21-kivi-agent-package-<b/c/d/e/f/g/h>.md`），每步要有完整代码、失败测试→实现→通过测试→commit。
 2. 展开完的计划文件建议先给你过一眼再执行——尤其是包 D 和包 E，因为后面的包 F、包 H 直接依赖它们暴露的接口，接口定歪了下游要返工。
 3. 执行时严格遵守仓库 `CLAUDE.md` 的中文注释规范（函数一行、测试两行"功能/设计"），这是所有 agent 共同的硬约束，不因为并行就放松。
 

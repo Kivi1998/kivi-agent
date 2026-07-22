@@ -3,8 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
-from kama_claude.core.memory.extractor import extract_memories
-from kama_claude.core.memory.store import MemoryStore
+from kivi_agent.core.memory.extractor import extract_memories
+from kivi_agent.core.memory.store import MemoryStore
 
 
 # 功能：验证 LLM 返回结构化的 MEMORY 块时，能正确解析并写入 MemoryStore

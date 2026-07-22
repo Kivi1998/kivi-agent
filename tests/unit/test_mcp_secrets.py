@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from kama_claude.core.mcp.secrets import resolve_secret_refs
+from kivi_agent.core.mcp.secrets import resolve_secret_refs
 
 
 # 功能：验证形如 ${SECRET:NAME} 的值被替换成对应环境变量的实际值

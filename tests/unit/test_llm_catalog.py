@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from kama_claude.core.llm.catalog import context_window_for
+from kivi_agent.core.llm.catalog import context_window_for
 
 
 # 功能：验证已知模型返回内建表里的精确窗口大小

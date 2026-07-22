@@ -3,7 +3,7 @@ from __future__ import annotations
 from rich.markdown import Markdown
 from textual.widget import Widget
 
-from kama_claude.tui.app import (
+from kivi_agent.tui.app import (
     KamaTuiApp,
     LLMStreamBlock,
     ToolCallBlock,

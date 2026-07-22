@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from kama_claude.core.config import get_config
+from kivi_agent.core.config import get_config
 
 
 def _write_env(path: Path, content: str) -> None:
@@ -72,7 +72,7 @@ def test_priority_chain_full(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) ->
     # TOML：6000
     # .env：7000
     # 系统环境变量：8000（最高）
-    toml_path = tmp_path / "kama.toml"
+    toml_path = tmp_path / "kivi.toml"
     toml_path.write_bytes(b'[core]\nport = 6000\n')
 
     env_file = tmp_path / ".env"

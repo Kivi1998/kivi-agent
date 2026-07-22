@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from kama_claude.core.tools.builtin.grep_tool import GrepTool
+from kivi_agent.core.tools.builtin.grep_tool import GrepTool
 
 
 # 功能：验证能在文件内容中按正则找到匹配行，输出 file:line:content 格式

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from kama_claude.core.tools.builtin.bash import BashTool
-from kama_claude.core.tools.builtin.read_file import ReadFileTool
-from kama_claude.core.tools.builtin.write_file import WriteFileTool
+from kivi_agent.core.tools.builtin.bash import BashTool
+from kivi_agent.core.tools.builtin.read_file import ReadFileTool
+from kivi_agent.core.tools.builtin.write_file import WriteFileTool
 
 
 # 功能：验证只读类工具被标记为 category="read"

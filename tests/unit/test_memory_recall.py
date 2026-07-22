@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from kama_claude.core.memory.recall import build_memory_prompt
-from kama_claude.core.memory.store import MemoryEntry, MemoryStore
+from kivi_agent.core.memory.recall import build_memory_prompt
+from kivi_agent.core.memory.store import MemoryEntry, MemoryStore
 
 
 # 功能：验证召回文本包含每条记忆的 description 和 body

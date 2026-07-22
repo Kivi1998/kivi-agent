@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from kama_claude.core.events.bus import EventBus
-from kama_claude.core.llm.openai_compat_provider import OpenAICompatProvider
+from kivi_agent.core.events.bus import EventBus
+from kivi_agent.core.llm.openai_compat_provider import OpenAICompatProvider
 
 
 class _FakeStreamChunk:

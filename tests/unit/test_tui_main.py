@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from kama_claude.core.config import KamaConfig
-from kama_claude.tui import __main__ as tui_main
+from kivi_agent.core.config import KamaConfig
+from kivi_agent.tui import __main__ as tui_main
 
 
 # 功能：验证 main() 把 --replay 参数和 get_config() 得到的配置原样转交给 app.run()，不再自己构造 KamaTuiApp
@@ -15,7 +15,7 @@ def test_main_delegates_to_run_with_parsed_config_and_replay_id(monkeypatch) -> 
     monkeypatch.setattr(tui_main, "get_config", lambda: fake_config)
     monkeypatch.setattr(tui_main, "run", lambda config, replay_run_id=None: calls.append((config, replay_run_id)))
     monkeypatch.setattr(tui_main, "_setup_logging", lambda level: None)
-    monkeypatch.setattr("sys.argv", ["kama-tui", "--replay", "run-123"])
+    monkeypatch.setattr("sys.argv", ["kivi-tui", "--replay", "run-123"])
 
     tui_main.main()
 

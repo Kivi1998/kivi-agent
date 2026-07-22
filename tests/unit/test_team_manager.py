@@ -3,10 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import AsyncMock
 
-from kama_claude.core.events.bus import EventBus
-from kama_claude.core.llm.types import LlmResponse, UsageStats
-from kama_claude.core.subagent.registry import BackgroundTaskRegistry
-from kama_claude.core.teams.manager import TeamManager
+from kivi_agent.core.events.bus import EventBus
+from kivi_agent.core.llm.types import LlmResponse, UsageStats
+from kivi_agent.core.subagent.registry import BackgroundTaskRegistry
+from kivi_agent.core.teams.manager import TeamManager
 
 
 def _make_provider() -> AsyncMock:
@@ -58,7 +58,7 @@ async def test_get_team_returns_created_team(tmp_path: Path) -> None:
 # 功能：验证 create_team 完成后会发布一条 TeamCreatedEvent，携带 team_id 和成员名单
 # 设计：TUI 团队树（Task H5）需要订阅这条事件来初始化树结构，覆盖事件确实被发布这一步
 async def test_create_team_publishes_team_created_event(tmp_path: Path) -> None:
-    from kama_claude.core.bus.events import TeamCreatedEvent
+    from kivi_agent.core.bus.events import TeamCreatedEvent
 
     bus = EventBus()
     received: list[object] = []

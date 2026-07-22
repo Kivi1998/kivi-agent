@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from kama_claude.core.skills.install import SkillInstallError, install_skill
+from kivi_agent.core.skills.install import SkillInstallError, install_skill
 
 
 # 用本地临时 git 仓库模拟"远程技能仓库"，避免测试依赖真实网络

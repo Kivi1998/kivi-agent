@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from kama_claude.core.agents.loader import AgentProfileLoader
+from kivi_agent.core.agents.loader import AgentProfileLoader
 
 
 # 功能：验证内建 coordinator 角色的 allowed_tools 不含任何写操作工具（write_file/edit_file/bash）

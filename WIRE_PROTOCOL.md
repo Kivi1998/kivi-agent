@@ -1570,7 +1570,7 @@ Events written to `runs/<run_id>/events.jsonl` and forwarded over IPC to subscri
   "type": "log.line",
   "run_id": "20260516-100000-abc123",
   "level": "INFO",
-  "source": "kama_claude.core.loop",
+  "source": "kivi_agent.core.loop",
   "message": "step 1 started",
   "ts": "2026-05-16T10:00:00.001Z"
 }

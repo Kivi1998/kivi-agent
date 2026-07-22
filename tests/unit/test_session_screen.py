@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from kama_claude.core.session.checkpoint import CheckpointData
-from kama_claude.core.session.model import Session
-from kama_claude.tui.session_screen import format_session_row
+from kivi_agent.core.session.checkpoint import CheckpointData
+from kivi_agent.core.session.model import Session
+from kivi_agent.tui.session_screen import format_session_row
 
 
 # 功能：验证有检查点时，展示行包含 session 标题和检查点的 step/status 信息

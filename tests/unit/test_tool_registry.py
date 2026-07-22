@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from kama_claude.core.tools.base import BaseTool, ToolResult
-from kama_claude.core.tools.builtin.read_file import ReadFileTool
-from kama_claude.core.tools.builtin.write_file import WriteFileTool
-from kama_claude.core.tools.registry import ToolRegistry
+from kivi_agent.core.tools.base import BaseTool, ToolResult
+from kivi_agent.core.tools.builtin.read_file import ReadFileTool
+from kivi_agent.core.tools.builtin.write_file import WriteFileTool
+from kivi_agent.core.tools.registry import ToolRegistry
 
 
 class _FakeTool(BaseTool):

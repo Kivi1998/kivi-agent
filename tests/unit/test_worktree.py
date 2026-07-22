@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from kama_claude.core.workspace.worktree import create_worktree, remove_worktree, slugify
+from kivi_agent.core.workspace.worktree import create_worktree, remove_worktree, slugify
 
 
 # 每个测试用例在 tmp_path 下建一个最小可用的 git 仓库并提交一次

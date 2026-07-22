@@ -4,10 +4,10 @@ import asyncio
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
-from kama_claude.core.events.bus import EventBus
-from kama_claude.core.subagent.registry import BackgroundTaskRegistry
-from kama_claude.core.teams.manager import TeamManager
-from kama_claude.core.tools.builtin.team_status import TeamStatusTool
+from kivi_agent.core.events.bus import EventBus
+from kivi_agent.core.subagent.registry import BackgroundTaskRegistry
+from kivi_agent.core.teams.manager import TeamManager
+from kivi_agent.core.tools.builtin.team_status import TeamStatusTool
 
 
 # 功能：验证查询一个刚创建、还在跑的团队时，每个成员状态显示为运行中而不是报错

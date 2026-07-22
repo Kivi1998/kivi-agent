@@ -3,8 +3,8 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from kama_claude.core.bus.commands import PingCommand, PongResult
-from kama_claude.core.bus.events import CoreStartedEvent
+from kivi_agent.core.bus.commands import PingCommand, PongResult
+from kivi_agent.core.bus.events import CoreStartedEvent
 
 
 # 功能：验证 PingCommand 序列化后再反序列化，client 和 type 字段完整保留
@@ -51,7 +51,7 @@ def test_core_started_event_roundtrip() -> None:
 # 功能：验证 SetPermissionModeCommand 能正常序列化/反序列化，type 字段固定
 # 设计：和仓库里其它 Command 模型一样的判别联合契约测试，确保新命令能被正确路由
 def test_set_permission_mode_command_roundtrip() -> None:
-    from kama_claude.core.bus.commands import SetPermissionModeCommand, SetPermissionModeResult
+    from kivi_agent.core.bus.commands import SetPermissionModeCommand, SetPermissionModeResult
     cmd = SetPermissionModeCommand(session_id="sess-1", mode="bypass")
     data = cmd.model_dump()
     assert data["type"] == "permission.set_mode"
@@ -66,6 +66,6 @@ def test_set_permission_mode_command_roundtrip() -> None:
 # 设计：type 是 Command union 的判别键，必须与 union 定义完全一致，
 #      否则反序列化时会路由到错误类型，导致 daemon handler 收不到
 def test_set_permission_mode_command_default_type() -> None:
-    from kama_claude.core.bus.commands import SetPermissionModeCommand
+    from kivi_agent.core.bus.commands import SetPermissionModeCommand
     cmd = SetPermissionModeCommand(session_id="sess-1", mode="plan")
     assert cmd.type == "permission.set_mode"

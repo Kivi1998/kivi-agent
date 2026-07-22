@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from kama_claude.core.tools.builtin.diff_tool import DiffTool
+from kivi_agent.core.tools.builtin.diff_tool import DiffTool
 
 
 # 功能：验证两个内容不同的文件能生成包含 +/- 标记的统一差异格式

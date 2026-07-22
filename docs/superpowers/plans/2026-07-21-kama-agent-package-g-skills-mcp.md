@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 给已有的 `SkillLoader`（只会从本地 `.kama/skills/`/`~/.kama/skills/` 加载）加关键词搜索和从 Git 仓库安装的能力；给已有的 `McpClient`（只支持 stdio/tcp）加 HTTP 传输；给 `McpServerConfig.env` 加密钥引用语法，避免明文密钥写进配置文件。
+**Goal:** 给已有的 `SkillLoader`（只会从本地 `.kivi/skills/`/`~/.kivi/skills/` 加载）加关键词搜索和从 Git 仓库安装的能力；给已有的 `McpClient`（只支持 stdio/tcp）加 HTTP 传输；给 `McpServerConfig.env` 加密钥引用语法，避免明文密钥写进配置文件。
 
 **Architecture:** 四个改动互相独立，不共享新增基础设施，直接在现有模块上做局部扩展——`SkillLoader` 加方法、`core/skills/` 加一个新文件、`McpClient` 加一个新的 transport 分支、`core/mcp/` 加一个新的小工具函数。不引入 mewcode 的签名校验机制（YAGNI，见 Global Constraints）。
 
@@ -21,7 +21,7 @@
 ### Task G1: Skill 关键词搜索
 
 **Files:**
-- Modify: `src/kama_claude/core/skills/loader.py`
+- Modify: `src/kivi_agent/core/skills/loader.py`
 - Test: `tests/unit/test_skill_loader.py`（追加用例）
 
 **Interfaces:**
@@ -36,7 +36,7 @@
 # 设计：用两个内建 skill 举例（假设 review.md 描述含"审查"、summarize.md 描述含"摘要"），
 #      实际测试改用临时目录写两个假 skill 文件，避免依赖内建 skill 内容随时间变化
 def test_search_finds_by_name_and_description(tmp_path, monkeypatch) -> None:
-    skills_dir = tmp_path / ".kama" / "skills"
+    skills_dir = tmp_path / ".kivi" / "skills"
     skills_dir.mkdir(parents=True)
     (skills_dir / "code-review.md").write_text(
         "---\nname: code-review\ndescription: 审查代码改动\n---\n审查 prompt 正文"
@@ -55,7 +55,7 @@ def test_search_finds_by_name_and_description(tmp_path, monkeypatch) -> None:
 # 功能：验证搜索结果数量受 limit 参数限制
 # 设计：写 3 个都匹配同一关键词的 skill，limit=2 时断言只返回 2 个
 def test_search_respects_limit(tmp_path, monkeypatch) -> None:
-    skills_dir = tmp_path / ".kama" / "skills"
+    skills_dir = tmp_path / ".kivi" / "skills"
     skills_dir.mkdir(parents=True)
     for i in range(3):
         (skills_dir / f"tool-{i}.md").write_text(
@@ -104,8 +104,8 @@ Expected: 全部通过
 - [ ] **Step 5: 提交**
 
 ```bash
-cd "/Users/kivi/Documents/agent系统/Kama/KamaClaude"
-git add src/kama_claude/core/skills/loader.py tests/unit/test_skill_loader.py
+cd "/Users/kivi/Documents/agent系统/Kama/kivi-agent"
+git add src/kivi_agent/core/skills/loader.py tests/unit/test_skill_loader.py
 git commit -m "feat: SkillLoader 加关键词搜索"
 ```
 
@@ -114,7 +114,7 @@ git commit -m "feat: SkillLoader 加关键词搜索"
 ### Task G2: Skill 安装（git clone）
 
 **Files:**
-- Create: `src/kama_claude/core/skills/install.py`
+- Create: `src/kivi_agent/core/skills/install.py`
 - Test: `tests/unit/test_skill_install.py`
 
 **Interfaces:**
@@ -131,7 +131,7 @@ from pathlib import Path
 
 import pytest
 
-from kama_claude.core.skills.install import SkillInstallError, install_skill
+from kivi_agent.core.skills.install import SkillInstallError, install_skill
 
 
 # 用本地临时 git 仓库模拟"远程技能仓库"，避免测试依赖真实网络
@@ -190,7 +190,7 @@ Expected: FAIL（`ModuleNotFoundError`）
 - [ ] **Step 3: 实现**
 
 ```python
-# src/kama_claude/core/skills/install.py
+# src/kivi_agent/core/skills/install.py
 from __future__ import annotations
 
 import asyncio
@@ -240,7 +240,7 @@ Expected: PASS（3 passed）
 - [ ] **Step 5: 提交**
 
 ```bash
-git add src/kama_claude/core/skills/install.py tests/unit/test_skill_install.py
+git add src/kivi_agent/core/skills/install.py tests/unit/test_skill_install.py
 git commit -m "feat: 新增 Skill 安装能力，从 git 仓库 clone 并校验 SKILL.md"
 ```
 
@@ -249,9 +249,9 @@ git commit -m "feat: 新增 Skill 安装能力，从 git 仓库 clone 并校验 
 ### Task G3: MCP HTTP 传输
 
 **Files:**
-- Modify: `src/kama_claude/core/mcp/client.py`
-- Modify: `src/kama_claude/core/mcp/server.py`
-- Modify: `src/kama_claude/core/config.py`
+- Modify: `src/kivi_agent/core/mcp/client.py`
+- Modify: `src/kivi_agent/core/mcp/server.py`
+- Modify: `src/kivi_agent/core/config.py`
 - Test: `tests/unit/test_mcp_client.py`（追加用例，若无此文件则新建）
 
 **Interfaces:**
@@ -266,7 +266,7 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, patch
 
-from kama_claude.core.mcp.client import McpClient
+from kivi_agent.core.mcp.client import McpClient
 
 
 # 功能：验证 connect_http 用 httpx 向指定 URL 发 initialize 请求完成握手，不走 stdio/tcp 那套行读取
@@ -386,8 +386,8 @@ Expected: PASS
 - [ ] **Step 6: 提交**
 
 ```bash
-git add src/kama_claude/core/mcp/client.py src/kama_claude/core/mcp/server.py \
-        src/kama_claude/core/config.py tests/unit/test_mcp_client.py
+git add src/kivi_agent/core/mcp/client.py src/kivi_agent/core/mcp/server.py \
+        src/kivi_agent/core/config.py tests/unit/test_mcp_client.py
 git commit -m "feat: MCP 客户端新增 HTTP 传输支持"
 ```
 
@@ -396,8 +396,8 @@ git commit -m "feat: MCP 客户端新增 HTTP 传输支持"
 ### Task G4: MCP 密钥引用（避免明文密钥落盘）
 
 **Files:**
-- Create: `src/kama_claude/core/mcp/secrets.py`
-- Modify: `src/kama_claude/core/mcp/server.py`
+- Create: `src/kivi_agent/core/mcp/secrets.py`
+- Modify: `src/kivi_agent/core/mcp/server.py`
 - Test: `tests/unit/test_mcp_secrets.py`
 
 **Interfaces:**
@@ -409,7 +409,7 @@ git commit -m "feat: MCP 客户端新增 HTTP 传输支持"
 # tests/unit/test_mcp_secrets.py
 from __future__ import annotations
 
-from kama_claude.core.mcp.secrets import resolve_secret_refs
+from kivi_agent.core.mcp.secrets import resolve_secret_refs
 
 
 # 功能：验证形如 ${SECRET:NAME} 的值被替换成对应环境变量的实际值
@@ -441,7 +441,7 @@ Expected: FAIL（`ModuleNotFoundError`）
 - [ ] **Step 3: 实现**
 
 ```python
-# src/kama_claude/core/mcp/secrets.py
+# src/kivi_agent/core/mcp/secrets.py
 from __future__ import annotations
 
 import logging
@@ -481,7 +481,7 @@ Expected: PASS（2 passed）
 
 ```python
     async def _connect(self, cfg: McpServerConfig) -> McpClient:
-        from kama_claude.core.mcp.secrets import resolve_secret_refs
+        from kivi_agent.core.mcp.secrets import resolve_secret_refs
 
         resolved_env = resolve_secret_refs(cfg.env) if cfg.env else {}
         client = McpClient()
@@ -510,7 +510,7 @@ Expected: 全部通过
 - [ ] **Step 7: 提交**
 
 ```bash
-git add src/kama_claude/core/mcp/secrets.py src/kama_claude/core/mcp/server.py tests/unit/test_mcp_secrets.py
+git add src/kivi_agent/core/mcp/secrets.py src/kivi_agent/core/mcp/server.py tests/unit/test_mcp_secrets.py
 git commit -m "feat: MCP env 支持 \${SECRET:NAME} 引用语法，避免明文密钥写入配置文件"
 ```
 

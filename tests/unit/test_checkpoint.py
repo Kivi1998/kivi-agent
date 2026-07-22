@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from kama_claude.core.session.checkpoint import CheckpointData, CheckpointStore
+from kivi_agent.core.session.checkpoint import CheckpointData, CheckpointStore
 
 
 # 功能：验证保存后能读回同一份检查点数据

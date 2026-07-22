@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from kama_claude.tui.plan_dialog import parse_plan_summary
+from kivi_agent.tui.plan_dialog import parse_plan_summary
 
 
 # 功能：验证从 exit_plan_mode 工具的标准输出文本里正确提取出纯计划内容

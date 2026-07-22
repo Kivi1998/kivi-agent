@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, patch
 
-from kama_claude.core.mcp.client import McpClient
+from kivi_agent.core.mcp.client import McpClient
 
 
 # 功能：验证 connect_http 用 httpx 向指定 URL 发 initialize 请求完成握手，不走 stdio/tcp 那套行读取

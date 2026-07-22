@@ -11,11 +11,11 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from kama_claude.core.config import KamaConfig
-from kama_claude.core.events.bus import EventBus
-from kama_claude.core.llm.types import LlmResponse, ToolCallBlock
-from kama_claude.core.permissions.manager import PermissionManager
-from kama_claude.core.runner import AgentRunner
+from kivi_agent.core.config import KamaConfig
+from kivi_agent.core.events.bus import EventBus
+from kivi_agent.core.llm.types import LlmResponse, ToolCallBlock
+from kivi_agent.core.permissions.manager import PermissionManager
+from kivi_agent.core.runner import AgentRunner
 
 # ── stub providers ────────────────────────────────────────────────────────────
 

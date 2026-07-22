@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from kama_claude.core.hooks.events import LifecycleEvent
-from kama_claude.core.hooks.models import Hook
+from kivi_agent.core.hooks.events import LifecycleEvent
+from kivi_agent.core.hooks.models import Hook
 
 
 # 功能：验证 Hook 能用最小必填字段构造，可选字段有合理默认值

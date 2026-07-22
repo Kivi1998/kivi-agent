@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from kama_claude.core.config import HookEntry, HooksConfig
-from kama_claude.core.hooks.events import LifecycleEvent
-from kama_claude.core.hooks.loader import load_hooks
+from kivi_agent.core.config import HookEntry, HooksConfig
+from kivi_agent.core.hooks.events import LifecycleEvent
+from kivi_agent.core.hooks.loader import load_hooks
 
 
 # 功能：验证 HooksConfig 里的条目能正确转换成 Hook 对象列表

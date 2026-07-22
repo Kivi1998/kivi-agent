@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 在 KamaClaude 已有的单层 Subagent 机制（`SpawnAgentTool` + `BackgroundTaskRegistry`，深度上限 2）基础上，加一层"团队"概念：多个命名成员、成员间可寻址通信（mailbox）、协调者角色的工具白名单约束、团队整体状态查询、可选的子 Agent 工作树隔离。
+**Goal:** 在 kivi-agent 已有的单层 Subagent 机制（`SpawnAgentTool` + `BackgroundTaskRegistry`，深度上限 2）基础上，加一层"团队"概念：多个命名成员、成员间可寻址通信（mailbox）、协调者角色的工具白名单约束、团队整体状态查询、可选的子 Agent 工作树隔离。
 
 **Architecture:** 不重写 Subagent 机制。先把 `SpawnAgentTool.invoke()` 里"创建并注册后台子 agent"这段逻辑抽成一个独立函数 `spawn_background_subagent()`，`SpawnAgentTool` 和新的 `TeamManager` 都调用这同一个函数——避免团队功能重新实现一遍 spawn 逻辑。团队本身是"多个通过这个函数创建的后台 subagent + 一层元数据（名字/角色/mailbox）"，不是全新的执行模型。协调者"只调度不编码"的约束复用已有的 `AgentProfile.allowed_tools` 白名单机制（不引入包 D 的 Hooks，见 Global Constraints）。
 
@@ -14,7 +14,7 @@
 - 测试命令：`uv run pytest tests/unit/test_xxx.py -v`；全量回归：`uv run pytest tests/unit -v`。
 - **不做 mewcode 的 `spawn_tmux`/`spawn_iterm2` 后端**——那两个需要用户本机装 tmux/iTerm2，个人闭环没必要，只做 `asyncio.create_task` 同进程协程这一种（Kama 现有 `SpawnAgentTool` 的后台模式本来就是这个机制，直接复用）。
 - **协调者约束走 `AgentProfile.allowed_tools` 白名单，不引入包 D 的 Hooks**——白名单机制已经存在且经过验证（`_build_child_registry` 里 `_allowed(name)` 已经在用），没必要为同一个目的叠两层机制，YAGNI。
-- Mailbox 用文件系统实现（不是内存队列）：即使当前只支持同进程 `asyncio.create_task` 后端，文件系统 mailbox 依然有价值——team 状态需要跨 `kama-core` 进程重启后可查（daemon 重启后台任务会丢，但已发送未消费的消息不应该跟着丢）。
+- Mailbox 用文件系统实现（不是内存队列）：即使当前只支持同进程 `asyncio.create_task` 后端，文件系统 mailbox 依然有价值——team 状态需要跨 `kivi-core` 进程重启后可查（daemon 重启后台任务会丢，但已发送未消费的消息不应该跟着丢）。
 - 新工具（`team_create`/`team_message`/`team_status`）必须在 `core/runner.py::_build_registry()` 里注册，并在 `core/permissions/policy.py::DEFAULT_POLICIES` 登记策略。
 
 ---
@@ -22,8 +22,8 @@
 ### Task F1: Team / TeammateInfo 数据模型
 
 **Files:**
-- Create: `src/kama_claude/core/teams/__init__.py`
-- Create: `src/kama_claude/core/teams/models.py`
+- Create: `src/kivi_agent/core/teams/__init__.py`
+- Create: `src/kivi_agent/core/teams/models.py`
 - Test: `tests/unit/test_team_models.py`
 
 **Interfaces:**
@@ -35,7 +35,7 @@
 # tests/unit/test_team_models.py
 from __future__ import annotations
 
-from kama_claude.core.teams.models import AgentTeam, TeammateInfo
+from kivi_agent.core.teams.models import AgentTeam, TeammateInfo
 
 
 # 功能：验证 TeammateInfo 用最小字段构造时 status 默认是 "pending"
@@ -66,7 +66,7 @@ Expected: FAIL（`ModuleNotFoundError`）
 - [ ] **Step 3: 实现**
 
 ```python
-# src/kama_claude/core/teams/models.py
+# src/kivi_agent/core/teams/models.py
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -95,7 +95,7 @@ class AgentTeam:
 ```
 
 ```python
-# src/kama_claude/core/teams/__init__.py
+# src/kivi_agent/core/teams/__init__.py
 ```
 
 - [ ] **Step 4: 运行测试确认通过**
@@ -106,8 +106,8 @@ Expected: PASS（2 passed）
 - [ ] **Step 5: 提交**
 
 ```bash
-cd "/Users/kivi/Documents/agent系统/Kama/KamaClaude"
-git add src/kama_claude/core/teams/ tests/unit/test_team_models.py
+cd "/Users/kivi/Documents/agent系统/Kama/kivi-agent"
+git add src/kivi_agent/core/teams/ tests/unit/test_team_models.py
 git commit -m "feat: 新增 Team/TeammateInfo 数据模型"
 ```
 
@@ -116,7 +116,7 @@ git commit -m "feat: 新增 Team/TeammateInfo 数据模型"
 ### Task F2: Mailbox — 文件系统跨进程邮箱
 
 **Files:**
-- Create: `src/kama_claude/core/teams/mailbox.py`
+- Create: `src/kivi_agent/core/teams/mailbox.py`
 - Test: `tests/unit/test_mailbox.py`
 
 **Interfaces:**
@@ -130,7 +130,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from kama_claude.core.teams.mailbox import consume_messages, write_message
+from kivi_agent.core.teams.mailbox import consume_messages, write_message
 
 
 # 功能：验证写入一条消息后，收件人能通过 consume_messages 读到，且读取后消息被清空
@@ -172,7 +172,7 @@ Expected: FAIL（`ModuleNotFoundError`）
 - [ ] **Step 3: 实现**
 
 ```python
-# src/kama_claude/core/teams/mailbox.py
+# src/kivi_agent/core/teams/mailbox.py
 from __future__ import annotations
 
 import json
@@ -225,7 +225,7 @@ Expected: PASS（3 passed）
 - [ ] **Step 5: 提交**
 
 ```bash
-git add src/kama_claude/core/teams/mailbox.py tests/unit/test_mailbox.py
+git add src/kivi_agent/core/teams/mailbox.py tests/unit/test_mailbox.py
 git commit -m "feat: 新增文件系统 Mailbox，支持团队成员间点对点消息"
 ```
 
@@ -234,7 +234,7 @@ git commit -m "feat: 新增文件系统 Mailbox，支持团队成员间点对点
 ### Task F3: 提取 spawn_background_subagent 共享函数
 
 **Files:**
-- Modify: `src/kama_claude/core/subagent/tool.py`
+- Modify: `src/kivi_agent/core/subagent/tool.py`
 - Test: `tests/unit/test_subagent_tool.py`（追加用例，若文件不存在则新建）
 
 **Interfaces:**
@@ -251,9 +251,9 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import AsyncMock
 
-from kama_claude.core.events.bus import EventBus
-from kama_claude.core.subagent.registry import BackgroundTaskRegistry
-from kama_claude.core.subagent.tool import spawn_background_subagent
+from kivi_agent.core.events.bus import EventBus
+from kivi_agent.core.subagent.registry import BackgroundTaskRegistry
+from kivi_agent.core.subagent.tool import spawn_background_subagent
 
 
 # 功能：验证 spawn_background_subagent 直接返回 run_id 字符串，而不是包一层 ToolResult 文本
@@ -403,7 +403,7 @@ Expected: 全部通过（确认重构没有改变 `SpawnAgentTool` 原有前台/
 - [ ] **Step 6: 提交**
 
 ```bash
-git add src/kama_claude/core/subagent/tool.py tests/unit/test_subagent_tool.py
+git add src/kivi_agent/core/subagent/tool.py tests/unit/test_subagent_tool.py
 git commit -m "refactor: 提取 spawn_background_subagent 共享函数，供 SpawnAgentTool 和 TeamManager 复用"
 ```
 
@@ -412,11 +412,11 @@ git commit -m "refactor: 提取 spawn_background_subagent 共享函数，供 Spa
 ### Task F4: TeamManager + team_create 工具
 
 **Files:**
-- Create: `src/kama_claude/core/teams/manager.py`
-- Create: `src/kama_claude/core/tools/builtin/team_create.py`
+- Create: `src/kivi_agent/core/teams/manager.py`
+- Create: `src/kivi_agent/core/tools/builtin/team_create.py`
 - Test: `tests/unit/test_team_manager.py`
-- Modify: `src/kama_claude/core/runner.py`
-- Modify: `src/kama_claude/core/permissions/policy.py`
+- Modify: `src/kivi_agent/core/runner.py`
+- Modify: `src/kivi_agent/core/permissions/policy.py`
 
 **Interfaces:**
 - Consumes: `AgentTeam`/`TeammateInfo`（F1）、`spawn_background_subagent`（F3）
@@ -431,9 +431,9 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import AsyncMock
 
-from kama_claude.core.events.bus import EventBus
-from kama_claude.core.subagent.registry import BackgroundTaskRegistry
-from kama_claude.core.teams.manager import TeamManager
+from kivi_agent.core.events.bus import EventBus
+from kivi_agent.core.subagent.registry import BackgroundTaskRegistry
+from kivi_agent.core.teams.manager import TeamManager
 
 
 # 功能：验证 create_team 为每个 member_spec 各起一个后台 subagent，并把 run_id 正确关联进团队成员
@@ -489,21 +489,21 @@ Expected: FAIL（`ModuleNotFoundError`）
 - [ ] **Step 3: 实现 TeamManager**
 
 ```python
-# src/kama_claude/core/teams/manager.py
+# src/kivi_agent/core/teams/manager.py
 from __future__ import annotations
 
 import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from kama_claude.core.events.bus import EventBus
-from kama_claude.core.subagent.registry import BackgroundTaskRegistry
-from kama_claude.core.subagent.tool import spawn_background_subagent
-from kama_claude.core.teams.models import AgentTeam, TeammateInfo
+from kivi_agent.core.events.bus import EventBus
+from kivi_agent.core.subagent.registry import BackgroundTaskRegistry
+from kivi_agent.core.subagent.tool import spawn_background_subagent
+from kivi_agent.core.teams.models import AgentTeam, TeammateInfo
 
 if TYPE_CHECKING:
-    from kama_claude.core.llm.base import LLMProvider
-    from kama_claude.core.permissions.manager import PermissionManager
+    from kivi_agent.core.llm.base import LLMProvider
+    from kivi_agent.core.permissions.manager import PermissionManager
 
 
 class TeamManager:
@@ -559,15 +559,15 @@ Expected: PASS（2 passed）
 - [ ] **Step 5: 实现 TeamCreateTool**
 
 ```python
-# src/kama_claude/core/tools/builtin/team_create.py
+# src/kivi_agent/core/tools/builtin/team_create.py
 from __future__ import annotations
 
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
-from kama_claude.core.teams.manager import TeamManager
-from kama_claude.core.tools.base import BaseTool, ToolResult
+from kivi_agent.core.teams.manager import TeamManager
+from kivi_agent.core.tools.base import BaseTool, ToolResult
 
 
 class MemberSpec(BaseModel):
@@ -650,8 +650,8 @@ if _ok("team_create"):
 - [ ] **Step 7: 提交**
 
 ```bash
-git add src/kama_claude/core/teams/manager.py src/kama_claude/core/tools/builtin/team_create.py \
-        tests/unit/test_team_manager.py src/kama_claude/core/runner.py src/kama_claude/core/permissions/policy.py
+git add src/kivi_agent/core/teams/manager.py src/kivi_agent/core/tools/builtin/team_create.py \
+        tests/unit/test_team_manager.py src/kivi_agent/core/runner.py src/kivi_agent/core/permissions/policy.py
 git commit -m "feat: 新增 TeamManager 与 team_create 工具"
 ```
 
@@ -660,10 +660,10 @@ git commit -m "feat: 新增 TeamManager 与 team_create 工具"
 ### Task F5: team_message 工具
 
 **Files:**
-- Create: `src/kama_claude/core/tools/builtin/team_message.py`
+- Create: `src/kivi_agent/core/tools/builtin/team_message.py`
 - Test: `tests/unit/test_team_message_tool.py`
-- Modify: `src/kama_claude/core/runner.py`
-- Modify: `src/kama_claude/core/permissions/policy.py`
+- Modify: `src/kivi_agent/core/runner.py`
+- Modify: `src/kivi_agent/core/permissions/policy.py`
 
 **Interfaces:**
 - Consumes: `write_message`/`consume_messages`（F2）、`TeamManager.get_team`（F4）
@@ -677,8 +677,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from kama_claude.core.teams.mailbox import consume_messages
-from kama_claude.core.tools.builtin.team_message import TeamMessageTool
+from kivi_agent.core.teams.mailbox import consume_messages
+from kivi_agent.core.tools.builtin.team_message import TeamMessageTool
 
 
 # 功能：验证工具调用后消息真的写进了对应收件人的 mailbox
@@ -699,15 +699,15 @@ Expected: FAIL（`ModuleNotFoundError`）
 - [ ] **Step 3: 实现**
 
 ```python
-# src/kama_claude/core/tools/builtin/team_message.py
+# src/kivi_agent/core/tools/builtin/team_message.py
 from __future__ import annotations
 
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
-from kama_claude.core.teams.mailbox import write_message
-from kama_claude.core.tools.base import BaseTool, ToolResult
+from kivi_agent.core.teams.mailbox import write_message
+from kivi_agent.core.tools.base import BaseTool, ToolResult
 
 
 class TeamMessageParams(BaseModel):
@@ -760,8 +760,8 @@ Expected: PASS（1 passed）
 - [ ] **Step 6: 提交**
 
 ```bash
-git add src/kama_claude/core/tools/builtin/team_message.py tests/unit/test_team_message_tool.py \
-        src/kama_claude/core/runner.py src/kama_claude/core/permissions/policy.py
+git add src/kivi_agent/core/tools/builtin/team_message.py tests/unit/test_team_message_tool.py \
+        src/kivi_agent/core/runner.py src/kivi_agent/core/permissions/policy.py
 git commit -m "feat: 新增 team_message 工具，团队成员间可寻址通信"
 ```
 
@@ -770,7 +770,7 @@ git commit -m "feat: 新增 team_message 工具，团队成员间可寻址通信
 ### Task F6: 协调者角色约束（复用 allowed_tools 白名单）
 
 **Files:**
-- Create: `src/kama_claude/core/agents/builtin/coordinator.toml`
+- Create: `src/kivi_agent/core/agents/builtin/coordinator.toml`
 - Test: `tests/unit/test_agent_profile_loader.py`（追加用例）
 
 **Interfaces:**
@@ -780,7 +780,7 @@ git commit -m "feat: 新增 team_message 工具，团队成员间可寻址通信
 
 ```python
 # tests/unit/test_agent_profile_loader.py 追加
-from kama_claude.core.agents.loader import AgentProfileLoader
+from kivi_agent.core.agents.loader import AgentProfileLoader
 
 
 # 功能：验证内建 coordinator 角色的 allowed_tools 不含任何写操作工具（write_file/edit_file/bash）
@@ -807,7 +807,7 @@ Expected: FAIL（`profile is None`）
 先看一个现有内建 profile（如 `core/agents/builtin/planner.toml`）确认字段格式，再按同样结构写：
 
 ```toml
-# src/kama_claude/core/agents/builtin/coordinator.toml
+# src/kivi_agent/core/agents/builtin/coordinator.toml
 system_prompt = """
 You are a coordinator agent. Your job is to break down complex goals into sub-tasks, \
 create teams via team_create, monitor progress via team_status, and relay information \
@@ -831,7 +831,7 @@ Expected: PASS
 - [ ] **Step 5: 提交**
 
 ```bash
-git add src/kama_claude/core/agents/builtin/coordinator.toml tests/unit/test_agent_profile_loader.py
+git add src/kivi_agent/core/agents/builtin/coordinator.toml tests/unit/test_agent_profile_loader.py
 git commit -m "feat: 新增 coordinator 内建角色，只调度不编码"
 ```
 
@@ -840,10 +840,10 @@ git commit -m "feat: 新增 coordinator 内建角色，只调度不编码"
 ### Task F7: team_status 查询工具
 
 **Files:**
-- Create: `src/kama_claude/core/tools/builtin/team_status.py`
+- Create: `src/kivi_agent/core/tools/builtin/team_status.py`
 - Test: `tests/unit/test_team_status_tool.py`
-- Modify: `src/kama_claude/core/runner.py`
-- Modify: `src/kama_claude/core/permissions/policy.py`
+- Modify: `src/kivi_agent/core/runner.py`
+- Modify: `src/kivi_agent/core/permissions/policy.py`
 
 **Interfaces:**
 - Consumes: `TeamManager.get_team`（F4）、`BackgroundTaskRegistry.get`（已有）
@@ -858,10 +858,10 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import AsyncMock
 
-from kama_claude.core.events.bus import EventBus
-from kama_claude.core.subagent.registry import BackgroundTaskRegistry
-from kama_claude.core.teams.manager import TeamManager
-from kama_claude.core.tools.builtin.team_status import TeamStatusTool
+from kivi_agent.core.events.bus import EventBus
+from kivi_agent.core.subagent.registry import BackgroundTaskRegistry
+from kivi_agent.core.teams.manager import TeamManager
+from kivi_agent.core.tools.builtin.team_status import TeamStatusTool
 
 
 # 功能：验证查询一个刚创建、还在跑的团队时，每个成员状态显示为运行中而不是报错
@@ -911,13 +911,13 @@ Expected: FAIL（`ModuleNotFoundError`）
 - [ ] **Step 3: 实现**
 
 ```python
-# src/kama_claude/core/tools/builtin/team_status.py
+# src/kivi_agent/core/tools/builtin/team_status.py
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict
 
-from kama_claude.core.teams.manager import TeamManager
-from kama_claude.core.tools.base import BaseTool, ToolResult
+from kivi_agent.core.teams.manager import TeamManager
+from kivi_agent.core.tools.base import BaseTool, ToolResult
 
 
 class TeamStatusParams(BaseModel):
@@ -979,8 +979,8 @@ Expected: 全部通过
 - [ ] **Step 6: 提交**
 
 ```bash
-git add src/kama_claude/core/tools/builtin/team_status.py tests/unit/test_team_status_tool.py \
-        src/kama_claude/core/runner.py src/kama_claude/core/permissions/policy.py
+git add src/kivi_agent/core/tools/builtin/team_status.py tests/unit/test_team_status_tool.py \
+        src/kivi_agent/core/runner.py src/kivi_agent/core/permissions/policy.py
 git commit -m "feat: 新增 team_status 工具，汇总团队成员进度"
 ```
 

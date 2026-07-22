@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from kama_claude.core.tools.file_state_cache import FileStateCache
+from kivi_agent.core.tools.file_state_cache import FileStateCache
 
 
 # 功能：验证 record 后 is_stale 返回 False（未变化）

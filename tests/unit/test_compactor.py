@@ -7,10 +7,10 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from kama_claude.core.compact.compactor import Compactor
-from kama_claude.core.context import ExecutionContext
-from kama_claude.core.events.bus import EventBus
-from kama_claude.core.llm.types import LlmResponse, UsageStats
+from kivi_agent.core.compact.compactor import Compactor
+from kivi_agent.core.context import ExecutionContext
+from kivi_agent.core.events.bus import EventBus
+from kivi_agent.core.llm.types import LlmResponse, UsageStats
 
 
 def _stub_provider(summary: str = "## 1. Original Goal\nTest\n## 2. Completed Steps\n- done") -> Any:
@@ -135,8 +135,8 @@ def test_compact_failure_preserves_context(tmp_path: Path) -> None:
 #      断言前 2 次 is_circuit_open() 仍为 False（未达阈值），第 3 次之后变 True，
 #      覆盖"阈值触发"这个边界而不是随便断言个大概
 async def test_circuit_opens_after_three_consecutive_failures(tmp_path: Path) -> None:
-    from kama_claude.core.compact.compactor import Compactor
-    from kama_claude.core.events.bus import EventBus
+    from kivi_agent.core.compact.compactor import Compactor
+    from kivi_agent.core.events.bus import EventBus
 
     bus = EventBus()
     compactor = Compactor(bus, tmp_path, "s1")
@@ -155,8 +155,8 @@ async def test_circuit_opens_after_three_consecutive_failures(tmp_path: Path) ->
 # 功能：验证一次成功压缩会把连续失败计数清零，重新打开熔断
 # 设计：先制造 2 次失败（未达阈值），再来一次成功，断言 consecutive_failures 归零
 async def test_success_resets_failure_count(tmp_path: Path) -> None:
-    from kama_claude.core.compact.compactor import Compactor
-    from kama_claude.core.events.bus import EventBus
+    from kivi_agent.core.compact.compactor import Compactor
+    from kivi_agent.core.events.bus import EventBus
 
     bus = EventBus()
     compactor = Compactor(bus, tmp_path, "s1")
@@ -177,9 +177,9 @@ async def test_success_resets_failure_count(tmp_path: Path) -> None:
 # 功能：验证 compact() 在熔断打开时直接跳过、不调用 provider，且发布 CompactionSkippedEvent
 # 设计：先制造 3 次失败让熔断打开，然后调用 compact() 并断言 provider.chat 未被调用、收到 skipped 事件
 async def test_compact_short_circuits_when_open_and_publishes_skipped(tmp_path: Path) -> None:
-    from kama_claude.core.bus.events import CompactionSkippedEvent
-    from kama_claude.core.compact.compactor import Compactor
-    from kama_claude.core.events.bus import EventBus
+    from kivi_agent.core.bus.events import CompactionSkippedEvent
+    from kivi_agent.core.compact.compactor import Compactor
+    from kivi_agent.core.events.bus import EventBus
 
     bus = EventBus()
     received: list[Any] = []

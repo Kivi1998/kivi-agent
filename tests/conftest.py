@@ -26,7 +26,7 @@ async def running_daemon(free_port: int) -> AsyncGenerator[subprocess.Popen[byte
     env["KAMA_LOG_FILE"] = ""
     env["KAMA_LOG_LEVEL"] = "WARNING"
 
-    proc = subprocess.Popen([sys.executable, "-m", "kama_claude.core"], env=env)
+    proc = subprocess.Popen([sys.executable, "-m", "kivi_agent.core"], env=env)
 
     deadline = time.monotonic() + 3.0
     while time.monotonic() < deadline:

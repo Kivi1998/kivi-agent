@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from kama_claude.core.session.replacement import (
+from kivi_agent.core.session.replacement import (
     ReplacementRecord,
     list_replacement_records,
     write_replacement_record,

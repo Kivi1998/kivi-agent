@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from kama_claude.core.teams.models import AgentTeam, TeammateInfo
+from kivi_agent.core.teams.models import AgentTeam, TeammateInfo
 
 
 # 功能：验证 TeammateInfo 用最小字段构造时 status 默认是 "pending"

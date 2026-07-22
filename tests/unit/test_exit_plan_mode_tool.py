@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from kama_claude.core.tools.builtin.exit_plan_mode import ExitPlanModeTool
+from kivi_agent.core.tools.builtin.exit_plan_mode import ExitPlanModeTool
 
 
 # 功能：验证工具调用时返回的确认文本包含提交的计划摘要

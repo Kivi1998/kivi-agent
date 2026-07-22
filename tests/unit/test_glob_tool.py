@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from kama_claude.core.tools.builtin.glob_tool import GlobTool
+from kivi_agent.core.tools.builtin.glob_tool import GlobTool
 
 
 # 功能：验证按 *.py 模式能搜到匹配文件，按 mtime 倒序排列

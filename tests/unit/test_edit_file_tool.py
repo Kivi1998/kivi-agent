@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from kama_claude.core.tools.builtin.edit_file import EditFileTool
-from kama_claude.core.tools.file_state_cache import FileStateCache
+from kivi_agent.core.tools.builtin.edit_file import EditFileTool
+from kivi_agent.core.tools.file_state_cache import FileStateCache
 
 
 # 功能：验证唯一匹配时能正确替换并原子写回文件
@@ -72,7 +72,7 @@ async def test_edit_without_cache_works(tmp_path: Path) -> None:
 # 设计：先 read_file 记录状态，再让外部脚本改写文件，再调 edit_file，
 #      断言返回 is_error=True 且 error_type="stale_file"，文件内容未变
 async def test_edit_detects_stale_file(tmp_path: Path) -> None:
-    from kama_claude.core.tools.builtin.read_file import ReadFileTool
+    from kivi_agent.core.tools.builtin.read_file import ReadFileTool
 
     f = tmp_path / "a.py"
     f.write_text("x = 1\n")
@@ -96,7 +96,7 @@ async def test_edit_detects_stale_file(tmp_path: Path) -> None:
 # 设计：read_file 记录后立刻 edit_file（无外部修改），断言正常替换，
 #      覆盖"cache 存在但状态新鲜"的正常路径
 async def test_edit_with_fresh_cache_works(tmp_path: Path) -> None:
-    from kama_claude.core.tools.builtin.read_file import ReadFileTool
+    from kivi_agent.core.tools.builtin.read_file import ReadFileTool
 
     f = tmp_path / "a.py"
     f.write_text("x = 1\n")

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from kama_claude.core.tools.builtin.tool_search import ToolSearchTool
-from kama_claude.core.tools.builtin.write_file import WriteFileTool
-from kama_claude.core.tools.registry import ToolRegistry
+from kivi_agent.core.tools.builtin.tool_search import ToolSearchTool
+from kivi_agent.core.tools.builtin.write_file import WriteFileTool
+from kivi_agent.core.tools.registry import ToolRegistry
 
 
 # 功能：验证调用 tool_search 后，匹配到的 deferred 工具被标记为已发现，随后出现在 tool_schemas 里

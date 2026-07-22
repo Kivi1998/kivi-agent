@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from kama_claude.core.hooks.engine import HookEngine
-from kama_claude.core.hooks.events import LifecycleEvent
-from kama_claude.core.hooks.models import Hook
-from kama_claude.core.tools.errors import ToolRejectedError
+from kivi_agent.core.hooks.engine import HookEngine
+from kivi_agent.core.hooks.events import LifecycleEvent
+from kivi_agent.core.hooks.models import Hook
+from kivi_agent.core.tools.errors import ToolRejectedError
 
 
 # 功能：验证 reject=True 的钩子命令返回非零退出码时，run_pre_tool_hooks 抛出 ToolRejectedError

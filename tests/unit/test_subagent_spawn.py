@@ -3,10 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import AsyncMock
 
-from kama_claude.core.events.bus import EventBus
-from kama_claude.core.llm.types import LlmResponse, UsageStats
-from kama_claude.core.subagent.registry import BackgroundTaskRegistry
-from kama_claude.core.subagent.tool import spawn_background_subagent
+from kivi_agent.core.events.bus import EventBus
+from kivi_agent.core.llm.types import LlmResponse, UsageStats
+from kivi_agent.core.subagent.registry import BackgroundTaskRegistry
+from kivi_agent.core.subagent.tool import spawn_background_subagent
 
 
 # 功能：验证 spawn_background_subagent 直接返回 run_id 字符串，而不是包一层 ToolResult 文本

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from kama_claude.core.memory.store import MemoryEntry, MemoryStore
+from kivi_agent.core.memory.store import MemoryEntry, MemoryStore
 
 
 # 功能：验证写入一条记忆后，能在同一 store 实例里通过 list_all 读回

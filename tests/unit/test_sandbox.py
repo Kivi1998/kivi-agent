@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from kama_claude.core.sandbox.bwrap import BwrapSandbox
-from kama_claude.core.sandbox.seatbelt import SeatbeltSandbox
+from kivi_agent.core.sandbox.bwrap import BwrapSandbox
+from kivi_agent.core.sandbox.seatbelt import SeatbeltSandbox
 
 
 # 功能：验证 SeatbeltSandbox.wrap 生成的命令以 sandbox-exec 开头并内嵌原始命令

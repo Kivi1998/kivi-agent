@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from kama_claude.core.teams.mailbox import consume_messages, write_message
+from kivi_agent.core.teams.mailbox import consume_messages, write_message
 
 
 # 功能：验证写入一条消息后，收件人能通过 consume_messages 读到，且读取后消息被清空

@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from kama_claude.core.trace.record import TraceRecord
-from kama_claude.core.trace.writer import TraceWriter
+from kivi_agent.core.trace.record import TraceRecord
+from kivi_agent.core.trace.writer import TraceWriter
 
 
 def _record(direction: str = "CORE", kind: str = "event") -> TraceRecord:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from kama_claude.tui.ask_user_dialog import AskUserDialog
+from kivi_agent.tui.ask_user_dialog import AskUserDialog
 
 
 # 功能：验证选项数量 > 0 时，对话框渲染包含所有选项文本

@@ -5,10 +5,10 @@ from typing import cast
 
 import pytest
 
-from kama_claude.core.sandbox import Sandbox
-from kama_claude.core.tools.builtin.bash import BashTool
-from kama_claude.core.tools.builtin.list_dir import ListDirTool
-from kama_claude.core.tools.builtin.write_file import WriteFileTool
+from kivi_agent.core.sandbox import Sandbox
+from kivi_agent.core.tools.builtin.bash import BashTool
+from kivi_agent.core.tools.builtin.list_dir import ListDirTool
+from kivi_agent.core.tools.builtin.write_file import WriteFileTool
 
 # ── bash ──────────────────────────────────────────────────────────────────────
 
@@ -131,7 +131,7 @@ async def test_list_dir_rejects_traversal() -> None:
 # 设计：注入一个记录收到的命令字符串的假 sandbox，断言它的 wrap() 被调用且其返回值确实被 create_subprocess_shell 使用
 @pytest.mark.asyncio
 async def test_bash_tool_uses_sandbox_when_provided() -> None:
-    from kama_claude.core.tools.builtin.bash import BashTool
+    from kivi_agent.core.tools.builtin.bash import BashTool
 
     class _FakeSandbox:
         def __init__(self) -> None:

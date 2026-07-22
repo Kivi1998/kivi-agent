@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from kama_claude.core.compact.budget import persist_and_truncate_tool_results, truncate_tool_results
+from kivi_agent.core.compact.budget import persist_and_truncate_tool_results, truncate_tool_results
 
 
 def _make_tool_result_msg(content: str) -> dict:

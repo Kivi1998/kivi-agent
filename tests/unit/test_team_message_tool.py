@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from kama_claude.core.teams.mailbox import consume_messages
-from kama_claude.core.tools.builtin.team_message import TeamMessageTool
+from kivi_agent.core.teams.mailbox import consume_messages
+from kivi_agent.core.tools.builtin.team_message import TeamMessageTool
 
 
 # 功能：验证工具调用后消息真的写进了对应收件人的 mailbox

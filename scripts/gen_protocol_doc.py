@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate WIRE_PROTOCOL.md from pydantic models in kama_claude.core.bus."""
+"""Generate WIRE_PROTOCOL.md from pydantic models in kivi_agent.core.bus."""
 from __future__ import annotations
 
 import argparse
@@ -7,7 +7,7 @@ import json
 import sys
 from pathlib import Path
 
-from kama_claude.core.bus.commands import (
+from kivi_agent.core.bus.commands import (
     AgentRunCommand,
     AgentRunResult,
     EventSubscribeCommand,
@@ -29,8 +29,8 @@ from kama_claude.core.bus.commands import (
     SetPermissionModeCommand,
     SetPermissionModeResult,
 )
-from kama_claude.core.bus.envelope import EventPushEnvelope
-from kama_claude.core.bus.events import (
+from kivi_agent.core.bus.envelope import EventPushEnvelope
+from kivi_agent.core.bus.events import (
     AskUserRequestedEvent,
     CoreStartedEvent,
     LlmModelSelectedEvent,
@@ -256,7 +256,7 @@ def generate() -> str:
         "\n",
         _model_section("LogLineEvent", LogLineEvent,
             {"type": "log.line", "run_id": run_id, "level": "INFO",
-             "source": "kama_claude.core.loop", "message": "step 1 started", "ts": ts}),
+             "source": "kivi_agent.core.loop", "message": "step 1 started", "ts": ts}),
         "\n",
         _model_section("AskUserRequestedEvent", AskUserRequestedEvent,
             {"type": "ask_user.requested", "run_id": run_id, "request_id": "q1",

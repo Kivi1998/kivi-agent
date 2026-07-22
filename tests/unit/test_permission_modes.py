@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from kama_claude.core.permissions.modes import PermissionMode, mode_override
-from kama_claude.core.permissions.policy import PermissionDecision
+from kivi_agent.core.permissions.modes import PermissionMode, mode_override
+from kivi_agent.core.permissions.policy import PermissionDecision
 
 
 # 功能：验证 BYPASS 模式下任意分类的工具都被直接放行

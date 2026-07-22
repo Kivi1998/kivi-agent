@@ -4,11 +4,11 @@ import asyncio
 
 from pydantic import BaseModel
 
-from kama_claude.core.events.bus import EventBus
-from kama_claude.core.llm.types import ToolCallBlock
-from kama_claude.core.tools.base import BaseTool, ToolResult
-from kama_claude.core.tools.invocation import invoke_tool
-from kama_claude.core.tools.registry import ToolRegistry
+from kivi_agent.core.events.bus import EventBus
+from kivi_agent.core.llm.types import ToolCallBlock
+from kivi_agent.core.tools.base import BaseTool, ToolResult
+from kivi_agent.core.tools.invocation import invoke_tool
+from kivi_agent.core.tools.registry import ToolRegistry
 
 # --- stub tools --------------------------------------------------------------
 
@@ -152,10 +152,10 @@ async def test_started_event_always_first() -> None:
 # 设计：invoke_tool 的既有契约是"永不抛异常，失败都体现在返回值里"，
 #      这里断言钩子拒绝也遵守同一契约，error_type 标记为 "permission_denied" 与既有权限拒绝路径保持一致的语义
 async def test_invoke_tool_respects_hook_rejection() -> None:
-    from kama_claude.core.hooks.engine import HookEngine
-    from kama_claude.core.hooks.events import LifecycleEvent
-    from kama_claude.core.hooks.models import Hook
-    from kama_claude.core.tools.builtin.bash import BashTool
+    from kivi_agent.core.hooks.engine import HookEngine
+    from kivi_agent.core.hooks.events import LifecycleEvent
+    from kivi_agent.core.hooks.models import Hook
+    from kivi_agent.core.tools.builtin.bash import BashTool
 
     registry = ToolRegistry()
     registry.register(BashTool())

@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
-from kama_claude.core.tools.builtin.ask_user import AskUserTool, QuestionStore
+from kivi_agent.core.tools.builtin.ask_user import AskUserTool, QuestionStore
 
 
 # 功能：验证 wait_for_answer 在 respond 之后返回用户的答案

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from kama_claude.core.llm.streaming import StreamAccumulator
+from kivi_agent.core.llm.streaming import StreamAccumulator
 
 
 # 功能：验证多个文本增量按顺序拼接成完整文本

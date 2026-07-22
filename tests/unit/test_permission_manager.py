@@ -6,14 +6,14 @@ from typing import Any
 
 import pytest
 
-from kama_claude.core.permissions.manager import PermissionManager
-from kama_claude.core.permissions.policy import PermissionDecision, ToolPolicy
-from kama_claude.core.permissions.storage import load_policy_file
+from kivi_agent.core.permissions.manager import PermissionManager
+from kivi_agent.core.permissions.policy import PermissionDecision, ToolPolicy
+from kivi_agent.core.permissions.storage import load_policy_file
 
 # ── helpers ──────────────────────────────────────────────────────────────────
 
 def _make_manager(**policies: ToolPolicy) -> PermissionManager:
-    # policy_file=None：测试中不使用持久化，不污染 ~/.kama/policy.toml
+    # policy_file=None：测试中不使用持久化，不污染 ~/.kivi/policy.toml
     return PermissionManager(policies or None)
 
 
@@ -407,14 +407,14 @@ async def test_permission_timeout_cleans_up_pending() -> None:
 
 # ── PermissionMode 覆盖（Task D3）────────────────────────────────────────────
 
-from kama_claude.core.permissions.modes import PermissionMode  # noqa: E402
+from kivi_agent.core.permissions.modes import PermissionMode  # noqa: E402
 
 
 # 功能：验证 BYPASS 模式下即使工具默认策略是 ASK，也不会挂起等待审批而是直接放行
 # 设计：用默认策略为 ASK 的 bash 工具（category=command）在 BYPASS 模式下调用 check_and_wait，
 #      断言立即返回 True 且 decision 明确标示来自模式覆盖，而不是掉进 Future 等待
 async def test_bypass_mode_skips_approval() -> None:
-    from kama_claude.core.permissions.manager import PermissionManager
+    from kivi_agent.core.permissions.manager import PermissionManager
 
     manager = PermissionManager(
         mode=PermissionMode.BYPASS,
@@ -438,7 +438,7 @@ async def test_bypass_mode_skips_approval() -> None:
 # 功能：验证 PLAN 模式下 write_file 这类 write 分类工具被直接拒绝，不进入审批流程
 # 设计：同样用 _never_called 断言不会发出 permission.requested 事件，确认模式覆盖发生在 ask 分支之前
 async def test_plan_mode_denies_write_tool() -> None:
-    from kama_claude.core.permissions.manager import PermissionManager
+    from kivi_agent.core.permissions.manager import PermissionManager
 
     manager = PermissionManager(
         mode=PermissionMode.PLAN,
