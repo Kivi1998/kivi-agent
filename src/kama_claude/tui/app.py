@@ -596,7 +596,7 @@ class KamaTuiApp(App[None]):
                     {"session_id": self._session_id, "mode": mode},
                 )
             except (IpcError, RuntimeError, OSError):
-                self._append(Static(f"[red]permission.set_mode failed[/red]", classes="log-line"))
+                self._append(Static("[red]permission.set_mode failed[/red]", classes="log-line"))
 
     # 处理内联审批控件的用户决策：发送 IPC 响应并恢复输入框
     async def on_permission_select_decided(self, msg: PermissionSelect.Decided) -> None:
