@@ -230,6 +230,57 @@ class TeamCreatedEvent(BaseModel):
     ts: str
 
 
+# ---- v1 §5.2.1 新增 6 事件（Wave 1 冻结）----
+# 下面 6 个事件是 v1 契约冻结范围，只在末尾追加，不修改既有事件签名
+
+
+class LlmThinkingEvent(BaseModel):
+    type: Literal["llm.thinking"] = "llm.thinking"
+    run_id: str
+    step: int
+    content: str
+    ts: str
+
+
+class ChartRenderedEvent(BaseModel):
+    type: Literal["chart.rendered"] = "chart.rendered"
+    run_id: str
+    chart_id: str
+    option_dict: dict[str, Any]  # ECharts option dict
+    ts: str
+
+
+class RagSourcesCitedEvent(BaseModel):
+    type: Literal["rag.sources_cited"] = "rag.sources_cited"
+    run_id: str
+    sources: list[dict[str, Any]]
+    ts: str
+
+
+class FrontendToolCallRequested(BaseModel):
+    type: Literal["frontend.tool_call_requested"] = "frontend.tool_call_requested"
+    run_id: str
+    request_id: str
+    tool_name: str
+    args: dict[str, Any]
+    ts: str
+
+
+class FrontendToolCallResponded(BaseModel):
+    type: Literal["frontend.tool_call_responded"] = "frontend.tool_call_responded"
+    run_id: str
+    request_id: str
+    result: dict[str, Any]
+    ts: str
+
+
+class RunCancelledEvent(BaseModel):
+    type: Literal["run.cancelled"] = "run.cancelled"
+    run_id: str
+    reason: str
+    ts: str
+
+
 # 根据 type 字段决定事件类型的判别联合
 Event = Annotated[
     CoreStartedEvent
@@ -258,6 +309,12 @@ Event = Annotated[
     | SubagentStartedEvent
     | SubagentFinishedEvent
     | SkillInvokedEvent
-    | TeamCreatedEvent,
+    | TeamCreatedEvent
+    | LlmThinkingEvent
+    | ChartRenderedEvent
+    | RagSourcesCitedEvent
+    | FrontendToolCallRequested
+    | FrontendToolCallResponded
+    | RunCancelledEvent,
     Discriminator("type"),
 ]
