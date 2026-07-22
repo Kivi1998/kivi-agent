@@ -89,3 +89,42 @@ def test_notes_read_and_append(tmp_path: Path) -> None:
     notes = store.read_notes("sess-1")
     assert "Python 3.12" in notes
     assert "run-1" in notes
+
+
+# 功能：验证 list_sessions 能枚举出所有已创建的 session，按 updated_at 倒序排列
+# 设计：创建两个 session（写 meta.json），断言列表包含两者且更晚更新的排在前面，
+#      覆盖"会话选择界面应该把最近用过的会话排在最上面"这个使用场景
+def test_list_sessions_returns_all_sorted_by_recency(tmp_path: Path) -> None:
+    store = SessionStore(tmp_path)
+    store.write_meta(Session(
+        id="s1", mode="chat", status="active", title="old",
+        created_at="2026-01-01T00:00:00+00:00", updated_at="2026-01-01T00:00:00+00:00",
+    ))
+    store.write_meta(Session(
+        id="s2", mode="chat", status="active", title="new",
+        created_at="2026-01-02T00:00:00+00:00", updated_at="2026-01-02T00:00:00+00:00",
+    ))
+    sessions = store.list_sessions()
+    assert [s.id for s in sessions] == ["s2", "s1"]
+
+
+# 功能：验证没有任何 session 时返回空列表而不是报错
+# 设计：全新的 root 目录，覆盖首次使用 TUI 会话列表界面时的空状态
+def test_list_sessions_empty_when_none_exist(tmp_path: Path) -> None:
+    store = SessionStore(tmp_path)
+    assert store.list_sessions() == []
+
+
+# 功能：验证坏掉的 meta.json 不会让 list_sessions 整体失败
+# 设计：制造一个无法 JSON 解析的 meta.json，断言其他正常 session 仍被列出、坏文件被静默跳过，
+#      覆盖 daemon 异常退出留下半截文件 / 用户手动改坏的边界场景
+def test_list_sessions_skips_unreadable_meta(tmp_path: Path) -> None:
+    store = SessionStore(tmp_path)
+    store.write_meta(Session(
+        id="good", mode="chat", status="active", title="ok",
+        created_at="t", updated_at="2026-02-01T00:00:00+00:00",
+    ))
+    (tmp_path / "broken").mkdir()
+    (tmp_path / "broken" / "meta.json").write_text("{not json", encoding="utf-8")
+    sessions = store.list_sessions()
+    assert [s.id for s in sessions] == ["good"]
