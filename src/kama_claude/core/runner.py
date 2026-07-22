@@ -121,6 +121,10 @@ class AgentRunner:
         for t in [ReadFileTool(), WriteFileTool(), ListDirTool()]:
             if _ok(t.name):
                 registry.register(t)
+        # tool_search（agent: package-b）：在构建完基础工具后注册，让它能引用同一 registry 做关键词搜索
+        if _ok("tool_search"):
+            from kama_claude.core.tools.builtin.tool_search import ToolSearchTool
+            registry.register(ToolSearchTool(registry))
         # bash（agent: minimal-loop）: 构造时注入平台沙箱（macOS Seatbelt / Linux bwrap），不允许网络
         from kama_claude.core.sandbox import create_sandbox
         bash_tool = BashTool(sandbox=create_sandbox(), allow_write=[str(child_runs_dir)])

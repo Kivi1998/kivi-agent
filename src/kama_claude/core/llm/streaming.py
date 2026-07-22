@@ -29,7 +29,9 @@ class StreamAccumulator:
     def finalize(self) -> tuple[str, list[ToolCallBlock]]:
         text = "".join(self._text_parts)
         tool_calls = [
-            ToolCallBlock(id=buf["id"], name=buf["name"], input=json.loads(buf["arguments"] or "{}"))
+            ToolCallBlock(
+                id=buf["id"], name=buf["name"], input=json.loads(buf["arguments"] or "{}")
+            )
             for buf in self._tool_call_buffers.values()
         ]
         return text, tool_calls

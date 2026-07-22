@@ -9,7 +9,7 @@ from kama_claude.core.bus.events import LlmModelSelectedEvent, LlmTokenEvent, Ll
 from kama_claude.core.events.bus import EventBus
 from kama_claude.core.llm.catalog import context_window_for
 from kama_claude.core.llm.streaming import StreamAccumulator
-from kama_claude.core.llm.types import LlmResponse, ToolCallBlock, UsageStats
+from kama_claude.core.llm.types import LlmResponse, UsageStats
 
 
 # 返回当前 UTC 时间的 ISO 8601 字符串

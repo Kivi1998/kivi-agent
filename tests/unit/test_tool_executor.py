@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from kama_claude.core.events.bus import EventBus
 from kama_claude.core.llm.types import ToolCallBlock
-from kama_claude.core.tools.executor import execute_tool_batches, partition_tool_calls
-from kama_claude.core.tools.registry import ToolRegistry
 from kama_claude.core.tools.builtin.read_file import ReadFileTool
 from kama_claude.core.tools.builtin.write_file import WriteFileTool
+from kama_claude.core.tools.executor import execute_tool_batches, partition_tool_calls
+from kama_claude.core.tools.registry import ToolRegistry
 
 
 # 功能：验证连续的只读工具调用被分进同一个 batch
