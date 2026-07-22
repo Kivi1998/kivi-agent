@@ -6,6 +6,12 @@ allowed_tools:
   - list_dir
   - write_file
   - bash
+category: general
+command_mode: true
+tool_mode: true
+runtime_context_keys: []
+references: []
+scripts: []
 ---
 你是一位项目分析专家。请分析当前项目目录，生成一份 `.kivi/context.md` 文件，供 AI agent 在后续对话中快速了解项目背景。
 

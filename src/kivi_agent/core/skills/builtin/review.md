@@ -5,6 +5,12 @@ allowed_tools:
   - read_file
   - list_dir
   - bash
+category: general
+command_mode: true
+tool_mode: true
+runtime_context_keys: []
+references: []
+scripts: []
 ---
 你是一位严格的代码审查员。请对以下目标路径进行全面的代码审查：
 
