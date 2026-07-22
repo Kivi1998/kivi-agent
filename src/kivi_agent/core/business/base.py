@@ -11,6 +11,8 @@ kivi_agent.core.tools.base.BaseTool，避免直接耦合 kivi-agent 内置 Tool 
 
 from __future__ import annotations
 
+from typing import Any
+
 from kivi_agent.core.tools.base import BaseTool
 
 
@@ -28,3 +30,7 @@ class BaseBusinessTool(BaseTool):
     时，新增 `async def invoke(self, params, *, ctx=None)` 重载；本基类保持
     向后兼容（ctx 可选）。
     """
+
+    # 基类层声明 input_schema 类属性（v1 §4 契约：所有 BaseTool 子类必须有 input_schema）
+    # 子类必须覆盖此属性；空 dict 表示"不暴露参数"（如未来的抽象基类扩展）
+    input_schema: dict[str, Any] = {}

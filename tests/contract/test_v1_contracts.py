@@ -27,23 +27,37 @@ from tests.contract.conftest import (
 # 功能：验证 v1 §1 锁定的 6 个业务 Tool 名称在 C 阶段业务 Tool 落地后全部出现
 # 设计：用 importlib 软探测 C 阶段业务 Tool 注册表，未实现则 skip 留 TODO
 def test_v1_business_tool_names_defined_in_code(v1_business_tool_names: tuple[str, ...]) -> None:
-    """§1 — 当 C 阶段业务 Tool 落地后，6 个名字必须出现于代码。"""
-    # 软探测 C 阶段的业务 Tool 模块（如果 A 已就绪才会出现）
-    from importlib import import_module
+    """§1 — 当 C 阶段业务 Tool 落地后，6 个名字必须出现于代码。
 
-    candidate_modules = [
-        "kivi_agent.core.business.tools",
-        "kivi_agent.core.business",
-    ]
-    found_any = False
-    for mod_name in candidate_modules:
+    递归扫描 `kivi_agent.core.business` 包及其所有子模块：
+    - 收集所有 string 常量
+    - 收集所有 BaseTool 子类的 `name` 属性
+    命中 v1 §1 锁定的 6 个 Tool 名才算通过。
+    """
+    import importlib
+    import pkgutil
+
+    package_name = "kivi_agent.core.business"
+    try:
+        package = importlib.import_module(package_name)
+    except ModuleNotFoundError:
+        pytest.skip(
+            "TODO(E 阶段): C 阶段业务 Tool 包尚未实现；"
+            "v1 §1 6 个 Tool 名已锁在 tests/contract/conftest.py.V1_BUSINESS_TOOL_NAMES"
+        )
+        return
+
+    defined_names: set[str] = set()
+    seen: set[str] = set()
+
+    def _walk(mod_name: str) -> None:
+        if mod_name in seen:
+            return
+        seen.add(mod_name)
         try:
-            mod = import_module(mod_name)
-        except ModuleNotFoundError:
-            continue
-        found_any = True
-        # 提取模块内"看起来像 Tool 名"的常量字符串（避免依赖具体类名）
-        defined_names: set[str] = set()
+            mod = importlib.import_module(mod_name)
+        except Exception:
+            return
         for attr_name in dir(mod):
             if attr_name.startswith("_"):
                 continue
@@ -52,27 +66,25 @@ def test_v1_business_tool_names_defined_in_code(v1_business_tool_names: tuple[st
                 defined_names.add(value)
             elif isinstance(value, (list, tuple, set)):
                 defined_names.update(x for x in value if isinstance(x, str))
-        # 已注册 Tool 类的 name 属性
-        for attr_name in dir(mod):
-            obj = getattr(mod, attr_name, None)
-            if obj is None or not hasattr(obj, "__mro__"):
-                continue
-            for base in getattr(obj, "__mro__", []):
-                if base.__name__ == "BaseTool" and hasattr(obj, "name"):
-                    defined_names.add(getattr(obj, "name"))
-                    break
+            elif hasattr(value, "__mro__"):
+                for base in getattr(value, "__mro__", []):
+                    if base.__name__ == "BaseTool" and hasattr(value, "name"):
+                        defined_names.add(getattr(value, "name"))
+                        break
+        # 递归子模块
+        if hasattr(mod, "__path__"):
+            for sub_info in pkgutil.iter_modules(mod.__path__):
+                _walk(f"{mod_name}.{sub_info.name}")
 
-        missing = [n for n in v1_business_tool_names if n not in defined_names]
-        if missing:
-            pytest.fail(
-                f"v1 §1 缺失业务 Tool: {missing}\n"
-                f"  模块 {mod_name} 仅发现: {sorted(defined_names)}"
-            )
+    _walk(package_name)
+    _ = package  # 显式引用避免 lint 警告
 
-    if not found_any:
-        pytest.skip(
-            "TODO(E 阶段): C 阶段业务 Tool 模块尚未实现；"
-            "v1 §1 6 个 Tool 名已锁在 tests/contract/conftest.py.V1_BUSINESS_TOOL_NAMES"
+    missing = [n for n in v1_business_tool_names if n not in defined_names]
+    if missing:
+        pytest.fail(
+            f"v1 §1 缺失业务 Tool: {missing}\n"
+            f"  包 {package_name} (含子模块) 共发现 {len(defined_names)} 个 Tool 名: "
+            f"{sorted(defined_names)[:20]}..."
         )
 
 
@@ -306,20 +318,24 @@ def _init_assigns_attribute(cls: type, attr: str) -> bool:
 
 
 # 功能：验证 BaseTool 自身就定义了 input_schema
-# 设计：BaseTool 是抽象基类，input_schema 在它是类属性，子类必须 override
+# 设计：BaseTool 是抽象基类，input_schema 在它是类属性（默认空 dict），子类必须 override
 def test_v1_base_tool_defines_input_schema_attribute() -> None:
-    """§4 — BaseTool 抽象基类必须有 input_schema 字段定义。"""
+    """§4 — BaseTool 抽象基类必须有 input_schema 字段定义。
+
+    v1 集成要求：硬断言，不允许 skip 兜底。若 BaseTool 缺 input_schema，
+    测试 fail，强制 A 阶段补上。
+    """
     from kivi_agent.core.tools import BaseTool
 
-    # 降级：当前 BaseTool 用 `input_schema` 类属性占位（v1 §4 决议前的过渡形式）
-    # 若 A 阶段按 v1 §4 决议保持 input_schema 即可
-    # 若 E 报告 §T9 建议的"params_schema"回潮则 fail
-    if not hasattr(BaseTool, V1_TOOL_SCHEMA_FIELD):
-        pytest.skip(
-            f"TODO(A 阶段): BaseTool 应有 {V1_TOOL_SCHEMA_FIELD} 类属性；"
-            f"当前基类仍未定义此属性。"
-            f"v1 §4 决议：使用 {V1_TOOL_SCHEMA_FIELD}（不是 {V1_TOOL_SCHEMA_FIELD_FORBIDDEN}）"
-        )
+    assert hasattr(BaseTool, V1_TOOL_SCHEMA_FIELD), (
+        f"v1 §4 违反: BaseTool 缺少 {V1_TOOL_SCHEMA_FIELD} 类属性；"
+        f"v1 §4 决议要求所有 BaseTool 子类必须可访问此字段。"
+    )
+    # 禁止把 params_schema 作为别名
+    assert not hasattr(BaseTool, V1_TOOL_SCHEMA_FIELD_FORBIDDEN), (
+        f"v1 §4 违反: BaseTool 仍使用 {V1_TOOL_SCHEMA_FIELD_FORBIDDEN}；"
+        f"v1 §4 决议：使用 {V1_TOOL_SCHEMA_FIELD}。"
+    )
 
 
 # ---- v1 schema_version 守门 ------------------------------------------------

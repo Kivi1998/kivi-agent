@@ -25,13 +25,19 @@ V1_BUSINESS_TOOL_NAMES: tuple[str, ...] = (
     "memory_recall",
 )
 
-#: v1 §1 — 6 个被弃的旧 Tool 名称（防止回潮）
+#: v1 §1 — 5 个被弃的旧 Tool 名称（防止回潮）。
+#:
+#: 注意：``note_save`` **不**在此列表里。``note_save`` 是 Session Notes
+#: （当前 run 内的短期笔记），与 ``memory_save``（跨 Session 长期记忆）
+#: 是两个不同概念，详见用户核验 issue #4 与 v1 §1 注释。
+#:
+#: 历史背景：B 报告 §309/314/353 误把 ``note_save`` 当作 ``memory_save``
+#: 的旧名，但实际它们指代不同功能。E 阶段经用户核验后修正。
 V1_DEPRECATED_TOOL_NAMES: tuple[str, ...] = (
     "search_knowledge_base",  # B 报告误用
     "rag_query_rewrite",      # B 误为独立 Tool
     "db_query",               # C 报告旧名
     "chart_render",           # C 报告旧名
-    "note_save",              # B 报告旧名
     "recall_memory",          # B 报告旧名
 )
 
