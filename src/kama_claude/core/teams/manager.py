@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from kama_claude.core.bus.events import TeamCreatedEvent
 from kama_claude.core.events.bus import EventBus
 from kama_claude.core.subagent.registry import BackgroundTaskRegistry
 from kama_claude.core.subagent.tool import spawn_background_subagent
@@ -66,6 +68,14 @@ class TeamManager:
             members.append(TeammateInfo(name=spec["name"], role=spec.get("role", ""), run_id=run_id))
         team = AgentTeam(id=team_id, goal=goal, members=members)
         self._teams[team_id] = team
+        await self._bus.publish(
+            TeamCreatedEvent(
+                team_id=team.id,
+                goal=team.goal,
+                members=[{"name": m.name, "role": m.role, "run_id": m.run_id} for m in team.members],
+                ts=datetime.now(UTC).isoformat(),
+            )
+        )
         return team
 
     # 按 team_id 查找团队；不存在返回 None

@@ -1633,6 +1633,86 @@ Events written to `runs/<run_id>/events.jsonl` and forwarded over IPC to subscri
 }
 ```
 
+## Team Events
+
+Emitted when a multi-agent team is created via the team_create tool.
+
+### TeamCreatedEvent
+
+| Field | Type | Required |
+|---|---|---|
+| `type` | `string` | no |
+| `team_id` | `string` | yes |
+| `goal` | `string` | yes |
+| `members` | `array` | yes |
+| `ts` | `string` | yes |
+
+```json
+{
+  "properties": {
+    "type": {
+      "const": "team.created",
+      "default": "team.created",
+      "title": "Type",
+      "type": "string"
+    },
+    "team_id": {
+      "title": "Team Id",
+      "type": "string"
+    },
+    "goal": {
+      "title": "Goal",
+      "type": "string"
+    },
+    "members": {
+      "items": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "title": "Members",
+      "type": "array"
+    },
+    "ts": {
+      "title": "Ts",
+      "type": "string"
+    }
+  },
+  "required": [
+    "team_id",
+    "goal",
+    "members",
+    "ts"
+  ],
+  "title": "TeamCreatedEvent",
+  "type": "object"
+}
+```
+
+**Example:**
+
+```json
+{
+  "type": "team.created",
+  "team_id": "team-abc12345",
+  "goal": "\u91cd\u6784\u767b\u5f55\u6a21\u5757",
+  "members": [
+    {
+      "name": "planner",
+      "role": "planner",
+      "run_id": "run-aaa"
+    },
+    {
+      "name": "executor",
+      "role": "executor",
+      "run_id": "run-bbb"
+    }
+  ],
+  "ts": "2026-05-16T10:00:00.001Z"
+}
+```
+
 ## Error Codes
 
 | Code | Name | Meaning |

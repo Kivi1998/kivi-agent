@@ -212,6 +212,14 @@ class SkillInvokedEvent(BaseModel):
     ts: str
 
 
+class TeamCreatedEvent(BaseModel):
+    type: Literal["team.created"] = "team.created"
+    team_id: str
+    goal: str
+    members: list[dict[str, str]]  # [{"name":, "role":, "run_id":}, ...]
+    ts: str
+
+
 # 根据 type 字段决定事件类型的判别联合
 Event = Annotated[
     CoreStartedEvent
@@ -238,6 +246,7 @@ Event = Annotated[
     | PermissionDeniedEvent
     | SubagentStartedEvent
     | SubagentFinishedEvent
-    | SkillInvokedEvent,
+    | SkillInvokedEvent
+    | TeamCreatedEvent,
     Discriminator("type"),
 ]

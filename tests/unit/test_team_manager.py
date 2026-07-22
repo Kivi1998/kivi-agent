@@ -53,3 +53,31 @@ async def test_get_team_returns_created_team(tmp_path: Path) -> None:
     team = await manager.create_team(goal="g", member_specs=[{"name": "a", "role": "executor", "prompt": "p"}])
     assert manager.get_team(team.id) is team
     assert manager.get_team("nonexistent") is None
+
+
+# 功能：验证 create_team 完成后会发布一条 TeamCreatedEvent，携带 team_id 和成员名单
+# 设计：TUI 团队树（Task H5）需要订阅这条事件来初始化树结构，覆盖事件确实被发布这一步
+async def test_create_team_publishes_team_created_event(tmp_path: Path) -> None:
+    from kama_claude.core.bus.events import TeamCreatedEvent
+
+    bus = EventBus()
+    received: list[object] = []
+
+    async def _collect(event: object) -> None:
+        received.append(event)
+
+    bus.subscribe(_collect)
+
+    manager = TeamManager(
+        provider=_make_provider(), bus=bus, permission_manager=None,
+        max_steps=5, task_registry=BackgroundTaskRegistry(), runs_dir=tmp_path, session_id="sess-1",
+    )
+    await manager.create_team(
+        goal="g",
+        member_specs=[{"name": "a", "role": "executor", "prompt": "p"}],
+    )
+
+    team_events = [e for e in received if isinstance(e, TeamCreatedEvent)]
+    assert len(team_events) == 1
+    assert team_events[0].goal == "g"
+    assert team_events[0].members[0]["name"] == "a"
