@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from datetime import UTC, datetime
 from typing import Any
 
@@ -9,6 +8,7 @@ from openai import AsyncOpenAI
 from kama_claude.core.bus.events import LlmModelSelectedEvent, LlmTokenEvent, LlmUsageEvent
 from kama_claude.core.events.bus import EventBus
 from kama_claude.core.llm.catalog import context_window_for
+from kama_claude.core.llm.streaming import StreamAccumulator
 from kama_claude.core.llm.types import LlmResponse, ToolCallBlock, UsageStats
 
 
@@ -65,29 +65,26 @@ class OpenAICompatProvider:
 
         stream = await self._client.chat.completions.create(**kwargs)
 
-        text_parts: list[str] = []
-        tool_call_buffers: dict[int, dict[str, str]] = {}
+        acc = StreamAccumulator()
         usage: Any = None
 
         async for chunk in stream:
             choice = chunk.choices[0]
             delta = choice.delta
+            if delta is None:
+                continue
             if delta.content:
-                text_parts.append(delta.content)
+                acc.add_content_delta(delta.content)
                 await bus.publish(LlmTokenEvent(run_id=run_id, token=delta.content, ts=_now()))
             if delta.tool_calls:
                 for tc in delta.tool_calls:
-                    buf = tool_call_buffers.setdefault(
-                        tc.index, {"id": "", "name": "", "arguments": ""}
+                    acc.add_tool_call_delta(
+                        tc.index, tc.id or "", tc.function.name or "", tc.function.arguments or ""
                     )
-                    if tc.id:
-                        buf["id"] = tc.id
-                    if tc.function.name:
-                        buf["name"] = tc.function.name
-                    if tc.function.arguments:
-                        buf["arguments"] += tc.function.arguments
             if choice.finish_reason:
                 usage = chunk.usage
+
+        text, tool_calls = acc.finalize()
 
         input_tokens = getattr(usage, "prompt_tokens", 0) or 0
         output_tokens = getattr(usage, "completion_tokens", 0) or 0
@@ -105,19 +102,10 @@ class OpenAICompatProvider:
             )
         )
 
-        tool_calls = [
-            ToolCallBlock(
-                id=buf["id"],
-                name=buf["name"],
-                input=json.loads(buf["arguments"] or "{}"),
-            )
-            for buf in tool_call_buffers.values()
-        ]
-
         return LlmResponse(
             stop_reason="tool_use" if tool_calls else "end_turn",
             tool_calls=tool_calls,
-            text="".join(text_parts),
+            text=text,
             usage=UsageStats(
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
