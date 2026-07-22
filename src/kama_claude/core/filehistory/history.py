@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import os
 import re
+import tempfile
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -98,3 +100,17 @@ class FileHistory:
     # 返回快照文件的磁盘路径（rewind 时直接用，避免在内存里多读一遍）
     def get_path(self, path: Path, version: str) -> Path:
         return self._file(path, version)
+
+    # 把文件内容还原到 version 指定的快照；文件不存在时抛 FileNotFoundError，
+    # version 不存在时抛 FileNotFoundError；用原子写入避免写到一半损坏
+    def rewind(self, path: Path, version: str) -> None:
+        snap = self.get_version(path, version)  # raises FileNotFoundError if missing
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp_name = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+        try:
+            with os.fdopen(fd, "wb") as f:
+                f.write(snap.content)
+            os.replace(tmp_name, path)
+        except BaseException:
+            Path(tmp_name).unlink(missing_ok=True)
+            raise

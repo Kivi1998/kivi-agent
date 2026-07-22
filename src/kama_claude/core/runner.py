@@ -17,6 +17,7 @@ from kama_claude.core.config import KamaConfig
 from kama_claude.core.context import ExecutionContext
 from kama_claude.core.events.bus import EventBus, EventHandler
 from kama_claude.core.events.writer import EventWriter
+from kama_claude.core.filehistory.history import FileHistory
 from kama_claude.core.hooks.engine import HookEngine
 from kama_claude.core.hooks.loader import load_hooks
 from kama_claude.core.llm.base import LLMProvider
@@ -42,6 +43,7 @@ from kama_claude.core.tools.builtin import (
     ListDirTool,
     NoteSaveTool,
     ReadFileTool,
+    RewindFileTool,
     TaskCreateTool,
     TaskGetTool,
     TaskListTool,
@@ -95,6 +97,8 @@ class AgentRunner:
         # file_state_cache（agent: package-c）：read_file 写、edit_file 读，
         # 检测"读后改"过期。每 run 一份即可，不需要跨 run 持久化。
         self._file_state_cache = FileStateCache()
+        # file_history（agent: package-c）—— 存放在 <project>/.kama/file-history/
+        self._file_history = FileHistory(Path.cwd() / ".kama" / "file-history")
         # 跨 run 共享的后台 subagent 任务注册表
         self._task_registry = BackgroundTaskRegistry()
         # package-f: 团队管理器，跨 _build_registry() 调用持久化，使同一 run 内后续
@@ -245,6 +249,9 @@ class AgentRunner:
                 )
 
             registry.register(AskUserTool(qs, event_emitter=_emit_ask_user))
+        # rewind_file（agent: package-c）
+        if _ok("rewind_file"):
+            registry.register(RewindFileTool(self._file_history))
         return registry
 
     # 执行一次完整的 agent run（委托给 run_and_capture，忽略返回值）
