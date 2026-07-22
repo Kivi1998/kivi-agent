@@ -3,8 +3,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from kivi_agent.core.memory.backend import MemoryAuditEvent, MemoryBackend, MemoryItem
-
+from kivi_agent.core.memory.backend import MemoryAuditEvent, MemoryItem
 
 _FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n(.*)$", re.DOTALL)
 _AUDIT_LOG = "audit.log"

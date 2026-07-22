@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import uuid
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
@@ -32,7 +31,6 @@ from kivi_agent.core.gateway.runtime import (
     Event,
     Result,
     SessionInfo,
-    SessionNotFoundError,
 )
 from kivi_agent.core.transport.socket_client import IpcError, SocketClient
 

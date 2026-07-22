@@ -50,7 +50,7 @@ class WebSocketBridge:
         self._clients: dict[str, list[_ClientHandle]] = {}
 
     # 注册一个新 client handle；返回 (handle, AsyncIterator)
-    def connect(self, session_id: str) -> "_Connection":
+    def connect(self, session_id: str) -> _Connection:
         queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
         handle = _ClientHandle(session_id=session_id, queue=queue)
         self._clients.setdefault(session_id, []).append(handle)

@@ -18,7 +18,6 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from kivi_agent.core.business.base import BaseBusinessTool
 from kivi_agent.core.tools.base import ToolResult
 
-
 # echarts_render 支持的图表类型（演示版 5 种）
 SUPPORTED_CHART_TYPES: tuple[str, ...] = ("bar", "line", "pie", "scatter", "heatmap")
 

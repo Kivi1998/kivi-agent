@@ -15,10 +15,9 @@ from __future__ import annotations
 
 import hashlib
 import re
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
-
 
 # 长期记忆 frontmatter 字段（按 v1 + C 报告 §6.6 决议）
 _FRONTMATTER_FIELDS: tuple[str, ...] = (
@@ -161,4 +160,4 @@ class LongTermMemoryBackend:
     # 标准化 created_at：UTC ISO 8601
     @staticmethod
     def now_iso() -> str:
-        return datetime.now(timezone.utc).isoformat()
+        return datetime.now(UTC).isoformat()

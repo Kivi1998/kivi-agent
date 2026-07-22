@@ -6,6 +6,7 @@
 
 # 业务 Tool 基类（agent: package-c-v1）
 from kivi_agent.core.business.base import BaseBusinessTool
+
 # 业务 Tool 注册表（agent: package-c-v1）
 from kivi_agent.core.business.registry import BusinessToolRegistry, business_tool_registry
 

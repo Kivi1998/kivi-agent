@@ -20,7 +20,6 @@ from kivi_agent.core.business.base import BaseBusinessTool
 from kivi_agent.core.business.memory_backend import LongTermMemoryBackend, LongTermMemoryEntry
 from kivi_agent.core.tools.base import ToolResult
 
-
 # v1 长期记忆类型（按 C 报告 §6.6 与 aigroup 对齐 + kivi 已有 reference）
 MemoryTypeLiteral = Literal["fact", "preference", "decision", "instruction", "correction", "summary", "reference"]
 

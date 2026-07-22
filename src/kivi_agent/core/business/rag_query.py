@@ -16,7 +16,6 @@ rewrite 是 rag_query 的内部步骤，不能注册成独立 Tool。
 from __future__ import annotations
 
 import json
-from typing import Any
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 

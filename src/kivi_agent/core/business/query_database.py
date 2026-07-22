@@ -20,7 +20,6 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 from kivi_agent.core.business.base import BaseBusinessTool
 from kivi_agent.core.tools.base import ToolResult
 
-
 # 单次 run 内允许的最大调用次数（C 报告 §3.10 + aigroup database_tool.py:15）
 _MAX_CALLS_PER_REQUEST = 3
 
