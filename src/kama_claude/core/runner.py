@@ -37,6 +37,7 @@ from kama_claude.core.task.manager import TaskManager
 from kama_claude.core.tools.builtin import (
     AskUserTool,
     BashTool,
+    EditFileTool,
     ExitPlanModeTool,
     ListDirTool,
     NoteSaveTool,
@@ -48,6 +49,7 @@ from kama_claude.core.tools.builtin import (
     WriteFileTool,
 )
 from kama_claude.core.tools.builtin.ask_user import QuestionStore
+from kama_claude.core.tools.file_state_cache import FileStateCache
 from kama_claude.core.tools.registry import ToolRegistry
 from kama_claude.core.trace.provider import TracingProvider
 from kama_claude.core.trace.writer import TraceWriter
@@ -90,6 +92,9 @@ class AgentRunner:
         # 跨 run 共享的 ask_user 问题挂起注册表（所有 ask_user 工具共用同一份，
         # 这样 spawn_agent 子 run 也能复用主 run 的 TUI 弹窗通道）
         self._question_store = question_store or QuestionStore()
+        # file_state_cache（agent: package-c）：read_file 写、edit_file 读，
+        # 检测"读后改"过期。每 run 一份即可，不需要跨 run 持久化。
+        self._file_state_cache = FileStateCache()
         # 跨 run 共享的后台 subagent 任务注册表
         self._task_registry = BackgroundTaskRegistry()
         # package-f: 团队管理器，跨 _build_registry() 调用持久化，使同一 run 内后续
@@ -130,7 +135,11 @@ class AgentRunner:
             return allowed is None or name in allowed
 
         registry = ToolRegistry()
-        for t in [ReadFileTool(), WriteFileTool(), ListDirTool()]:
+        for t in [
+            ReadFileTool(self._file_state_cache),
+            WriteFileTool(),
+            ListDirTool(),
+        ]:
             if _ok(t.name):
                 registry.register(t)
         # bash（agent: minimal-loop）: 构造时注入平台沙箱（macOS Seatbelt / Linux bwrap），不允许网络
@@ -148,9 +157,8 @@ class AgentRunner:
         grep_tool = GrepTool()
         if _ok(grep_tool.name):
             registry.register(grep_tool)
-        # edit_file（agent: minimal-loop）
-        from kama_claude.core.tools.builtin.edit_file import EditFileTool
-        edit_file_tool = EditFileTool()
+        # edit_file（agent: package-c 增强 staleness）：与 ReadFileTool 共享同一份 cache
+        edit_file_tool = EditFileTool(self._file_state_cache)
         if _ok(edit_file_tool.name):
             registry.register(edit_file_tool)
         # diff（agent: minimal-loop）
