@@ -18,7 +18,7 @@ from typing import Any
 import pytest
 
 from kivi_agent.core.gateway.adapter import RuntimeAdapter
-from kivi_agent.core.gateway.stub_protocol import SessionCancelCommand
+from kivi_agent.core.bus.commands import SessionCancelCommand
 from kivi_agent.core.transport.socket_client import SocketClient
 
 type Handler = Callable[[asyncio.StreamReader, asyncio.StreamWriter], Awaitable[None]]
@@ -393,5 +393,100 @@ async def test_subscribe_events_yields_events() -> None:
         await asyncio.wait_for(consumer, timeout=2.0)
         assert len(events) == 1
         assert events[0]["type"] == "llm.token"
+    finally:
+        await _teardown(client, server, loop_task)
+
+
+# 功能：start_session 后只带 run_id 的事件（如 LlmTokenEvent）也能正确路由到对应 session WebSocket 客户端
+# 设计：直接调 _on_socket_event 推 LlmTokenEvent(run_id)，断言订阅者 queue 收到；
+#  验证 run_id → session_id 映射生效，覆盖 D 报告"WebSocket 看不到流式过程"问题
+async def test_run_id_only_events_routed_via_mapping() -> None:
+    core = _MockCore()
+    core.register("session.create", lambda p: {"session_id": "sess-x", "status": "active"})
+    core.register("session.send_message", lambda p: {"run_id": "r-x"})
+    core.register("event.subscribe", lambda p: {"subscription_id": "sub-x", "replayed_count": 0})
+    server, port = await _start_mock(core.handle)
+    client = SocketClient("127.0.0.1", port)
+    await client.connect()
+    loop_task = asyncio.create_task(client.run_event_loop())
+    adapter = RuntimeAdapter(client)
+
+    try:
+        info = await adapter.start_session("u-1", "hi")
+        assert info.session_id == "sess-x"
+        assert info.run_id == "r-x"
+        # 验证映射已建立
+        assert adapter._run_to_session["r-x"] == "sess-x"
+
+        # 启动订阅者
+        events: list[dict[str, object]] = []
+
+        async def _consume() -> None:
+            async for ev in adapter.subscribe_events("sess-x"):
+                events.append(ev)
+                if len(events) >= 1:
+                    break
+
+        consumer = asyncio.create_task(_consume())
+        # 等 queue 创建
+        for _ in range(50):
+            await asyncio.sleep(0.01)
+            if "sess-x" in adapter._queues and adapter._queues["sess-x"]:
+                break
+
+        # 推一条**只带 run_id**的事件（Core 真实事件格式）
+        await adapter._on_socket_event(
+            {"type": "llm.token", "run_id": "r-x", "token": "world", "ts": "t2"}
+        )
+        await asyncio.wait_for(consumer, timeout=2.0)
+
+        # WebSocket 客户端应能收到（不是 None / 不是空）
+        assert len(events) == 1
+        assert events[0]["type"] == "llm.token"
+        assert events[0]["token"] == "world"
+        assert events[0]["run_id"] == "r-x"
+    finally:
+        await _teardown(client, server, loop_task)
+
+
+# 功能：run_id 映射外的孤儿事件（未在 _run_to_session 表中）不会路由到任何 session
+# 设计：保护机制；避免错把别人的事件投递给当前 session
+async def test_orphan_run_id_event_dropped() -> None:
+    core = _MockCore()
+    core.register("session.create", lambda p: {"session_id": "sess-y", "status": "active"})
+    core.register("session.send_message", lambda p: {"run_id": "r-y"})
+    core.register("event.subscribe", lambda p: {"subscription_id": "sub-y", "replayed_count": 0})
+    server, port = await _start_mock(core.handle)
+    client = SocketClient("127.0.0.1", port)
+    await client.connect()
+    loop_task = asyncio.create_task(client.run_event_loop())
+    adapter = RuntimeAdapter(client)
+
+    try:
+        info = await adapter.start_session("u-2", "hi")
+        assert info.run_id == "r-y"
+
+        events: list[dict[str, object]] = []
+
+        async def _consume() -> None:
+            async for ev in adapter.subscribe_events("sess-y"):
+                events.append(ev)
+                if len(events) >= 1:
+                    break
+
+        consumer = asyncio.create_task(_consume())
+        for _ in range(50):
+            await asyncio.sleep(0.01)
+            if "sess-y" in adapter._queues and adapter._queues["sess-y"]:
+                break
+
+        # 推一条 r-orphan 的事件（不在映射表里）
+        await adapter._on_socket_event(
+            {"type": "llm.token", "run_id": "r-orphan", "token": "x", "ts": "t"}
+        )
+        # 订阅者不应收到任何事件（timeout 内 consumer 没东西）
+        with pytest.raises(asyncio.TimeoutError):
+            await asyncio.wait_for(consumer, timeout=0.3)
+        assert events == []
     finally:
         await _teardown(client, server, loop_task)

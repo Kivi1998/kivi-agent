@@ -6,7 +6,8 @@ Adapter（`RuntimeAdapter`）将 kivi-core IPC 桥接到本 Protocol。
 设计要点：
 - 6 个方法 + 1 个事件订阅，全部使用 Protocol 描述，duck-typed；
 - `Event` / `Command` / `Result` 是 Pydantic `BaseModel` 的 TypeVar，调用方按业务传入具体子类；
-- 不在 Protocol 层硬编码 6 个新事件 / SessionCancel（见 `stub_protocol.py` 的暂存 stub）。
+- 不在 Protocol 层硬编码 6 个新事件 / SessionCancel；调用方直接从
+  `kivi_agent.core.bus.events` 和 `kivi_agent.core.bus.commands` 取 v1 §5.2 冻结的类型。
 """
 
 from __future__ import annotations

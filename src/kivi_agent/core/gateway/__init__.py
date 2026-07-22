@@ -5,6 +5,10 @@
 - `RuntimeAdapter` 把现有 kivi-core IPC（SocketClient）封装为 AgentRuntime；
 - `WebSocketBridge` 把 EventBus 事件流转发到 WebSocket 客户端。
 
+6 个新事件（LlmThinking / ChartRendered / RagSourcesCited / FrontendToolCall* /
+RunCancelled）和 SessionCancel 命令组直接来自 `kivi_agent.core.bus.events` 和
+`kivi_agent.core.bus.commands`（v1 §5.2 冻结），不在本包 re-export。
+
 FastAPI 路由层在 `kivi_agent.gateway.main`（顶层 gateway 目录）。
 """
 
@@ -17,32 +21,14 @@ from kivi_agent.core.gateway.runtime import (
     SessionInfo,
     SessionNotFoundError,
 )
-from kivi_agent.core.gateway.stub_protocol import (
-    ChartRenderedEvent,
-    FrontendToolCallRequested,
-    FrontendToolCallResponded,
-    LlmThinkingEvent,
-    RagSourcesCitedEvent,
-    RunCancelledEvent,
-    SessionCancelCommand,
-    SessionCancelResult,
-)
 from kivi_agent.core.gateway.ws_bridge import WebSocketBridge
 
 __all__ = [
     "AgentRuntime",
-    "ChartRenderedEvent",
     "Command",
     "Event",
-    "FrontendToolCallRequested",
-    "FrontendToolCallResponded",
-    "LlmThinkingEvent",
-    "RagSourcesCitedEvent",
     "Result",
-    "RunCancelledEvent",
     "RuntimeAdapter",
-    "SessionCancelCommand",
-    "SessionCancelResult",
     "SessionInfo",
     "SessionNotFoundError",
     "WebSocketBridge",

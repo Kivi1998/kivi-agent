@@ -23,16 +23,16 @@ from typing import Any
 
 from pydantic import BaseModel
 
+from kivi_agent.core.bus.commands import (
+    SessionCancelCommand,
+    SessionCancelResult,
+)
 from kivi_agent.core.gateway.runtime import (
     Command,
     Event,
     Result,
     SessionInfo,
     SessionNotFoundError,
-)
-from kivi_agent.core.gateway.stub_protocol import (
-    SessionCancelCommand,
-    SessionCancelResult,
 )
 from kivi_agent.core.transport.socket_client import IpcError, SocketClient
 
@@ -59,10 +59,19 @@ class RuntimeAdapter:
         self._sub_map: dict[str, str] = {}
         # 内部事件分发队列（按订阅的 session_id 分桶）
         self._queues: dict[str, list[asyncio.Queue[dict[str, Any]]]] = {}
+        # run_id → session_id 映射（D 报告：D 阶段缺 run→session 映射，集成时补）
+        # Core 发出的 LlmTokenEvent / ToolCallStartedEvent / RunStartedEvent 等
+        # 只带 run_id 不带 session_id；用本表反查后路由到对应 session queue
+        self._run_to_session: dict[str, str] = {}
         # 注册 SocketClient 的事件回调
         client.on_event(self._on_socket_event)
 
-    # 客户端推送事件时：按 session_id 路由到对应队列
+    # 注册 run_id → session_id 映射（start_session 时调用）
+    def register_run(self, run_id: str, session_id: str) -> None:
+        if run_id and session_id:
+            self._run_to_session[run_id] = session_id
+
+    # 客户端推送事件时：先按 session_id 直接路由，没有再按 run_id 反查
     async def _on_socket_event(self, event_data: dict[str, Any]) -> None:
         session_id = self._extract_session_id(event_data)
         if session_id is None:
@@ -71,14 +80,17 @@ class RuntimeAdapter:
         for q in queues:
             await q.put(event_data)
 
-    # 从事件 dict 中提取 session_id（D 报告：6 个新事件中有的带 session_id 字段）
-    @staticmethod
-    def _extract_session_id(event_data: dict[str, Any]) -> str | None:
+    # 从事件 dict 中提取 session_id（集成修复：同时支持 session_id 字段和 run_id 反查）
+    def _extract_session_id(self, event_data: dict[str, Any]) -> str | None:
         sid = event_data.get("session_id")
-        if isinstance(sid, str):
+        if isinstance(sid, str) and sid:
             return sid
-        # Run 事件没有 session_id；订阅 session 时不应收到 run-only 事件
-        # 这里保守返回 None（让订阅者自行过滤）
+        # 大部分 Core 事件只有 run_id（LlmTokenEvent / ToolCallStartedEvent /
+        # RunStartedEvent / StepStartedEvent / RunFinishedEvent 等）。
+        # 用 start_session 时记录的映射反查。
+        run_id = event_data.get("run_id")
+        if isinstance(run_id, str) and run_id:
+            return self._run_to_session.get(run_id)
         return None
 
     # 创建并启动新 session
@@ -92,6 +104,9 @@ class RuntimeAdapter:
         send_params = {"session_id": session_id, "content": goal}
         send_resp = await self._client.send_command("session.send_message", send_params)
         run_id = str(send_resp["run_id"])
+
+        # 注册 run_id → session_id 映射，供后续只带 run_id 的事件反查路由
+        self.register_run(run_id, session_id)
 
         return SessionInfo(
             session_id=session_id,

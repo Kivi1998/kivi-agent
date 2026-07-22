@@ -40,7 +40,7 @@ from kivi_agent.core.gateway.runtime import (
     AgentRuntime,
     SessionInfo,
 )
-from kivi_agent.core.gateway.stub_protocol import (
+from kivi_agent.core.bus.commands import (
     SessionCancelCommand,
     SessionCancelResult,
 )
@@ -60,7 +60,7 @@ logger = logging.getLogger(__name__)
 class StartSessionRequest(BaseModel):
     """POST /sessions 请求体。"""
 
-    user_id: str = Field(..., description="租户 ID,用于会话隔离")
+    user_id: str = Field(..., description="用户 ID,用于会话隔离")
     goal: str = Field(..., description="Agent 任务目标")
 
 

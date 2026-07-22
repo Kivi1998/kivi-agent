@@ -16,11 +16,11 @@ import pytest
 fastapi_testclient = pytest.importorskip("fastapi.testclient")
 TestClient = fastapi_testclient.TestClient
 
-from kivi_agent.core.gateway.runtime import SessionInfo  # noqa: E402
-from kivi_agent.core.gateway.stub_protocol import (  # noqa: E402
+from kivi_agent.core.bus.commands import (  # noqa: E402
     SessionCancelCommand,
     SessionCancelResult,
 )
+from kivi_agent.core.gateway.runtime import SessionInfo  # noqa: E402
 from kivi_agent.gateway.main import create_app  # noqa: E402
 
 
