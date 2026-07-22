@@ -27,6 +27,7 @@ from kivi_agent.core.gateway.stub_protocol import (
     SessionCancelCommand,
     SessionCancelResult,
 )
+from kivi_agent.core.gateway.ws_bridge import WebSocketBridge
 
 __all__ = [
     "AgentRuntime",
@@ -44,4 +45,5 @@ __all__ = [
     "SessionCancelResult",
     "SessionInfo",
     "SessionNotFoundError",
+    "WebSocketBridge",
 ]
