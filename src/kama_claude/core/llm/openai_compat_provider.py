@@ -8,9 +8,8 @@ from openai import AsyncOpenAI
 
 from kama_claude.core.bus.events import LlmModelSelectedEvent, LlmTokenEvent, LlmUsageEvent
 from kama_claude.core.events.bus import EventBus
+from kama_claude.core.llm.catalog import context_window_for
 from kama_claude.core.llm.types import LlmResponse, ToolCallBlock, UsageStats
-
-_DEFAULT_CONTEXT_WINDOW = 128_000
 
 
 # 返回当前 UTC 时间的 ISO 8601 字符串
@@ -92,7 +91,7 @@ class OpenAICompatProvider:
 
         input_tokens = getattr(usage, "prompt_tokens", 0) or 0
         output_tokens = getattr(usage, "completion_tokens", 0) or 0
-        context_pct = input_tokens / _DEFAULT_CONTEXT_WINDOW
+        context_pct = input_tokens / context_window_for(self._model)
 
         await bus.publish(
             LlmUsageEvent(

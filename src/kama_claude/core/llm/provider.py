@@ -11,23 +11,13 @@ import httpx
 
 from kama_claude.core.bus.events import LlmModelSelectedEvent, LlmTokenEvent, LlmUsageEvent
 from kama_claude.core.events.bus import EventBus
+from kama_claude.core.llm.catalog import context_window_for
 from kama_claude.core.llm.types import LlmResponse, ToolCallBlock, UsageStats
-
-_MODEL_CONTEXT_WINDOWS: dict[str, int] = {
-    "claude-sonnet-4-6": 200_000,
-    "claude-haiku-4-5-20251001": 200_000,
-    "claude-opus-4-7": 200_000,
-}
 
 _MAX_STREAM_RETRIES = 3
 _RETRY_BACKOFF_S = (1.0, 2.0, 4.0)
 
 log = logging.getLogger(__name__)
-
-
-# 返回指定模型的最大 context window token 数
-def _context_window(model: str) -> int:
-    return _MODEL_CONTEXT_WINDOWS.get(model, 200_000)
 
 
 _SYSTEM_PROMPT = (
@@ -125,7 +115,7 @@ class AnthropicProvider:
         usage = final_message.usage
         cache_read: int = getattr(usage, "cache_read_input_tokens", 0) or 0
         cache_create: int = getattr(usage, "cache_creation_input_tokens", 0) or 0
-        context_pct = usage.input_tokens / _context_window(self._model)
+        context_pct = usage.input_tokens / context_window_for(self._model)
 
         await bus.publish(
             LlmUsageEvent(
