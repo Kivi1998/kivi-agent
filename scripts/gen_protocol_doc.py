@@ -31,6 +31,7 @@ from kama_claude.core.bus.commands import (
 )
 from kama_claude.core.bus.envelope import EventPushEnvelope
 from kama_claude.core.bus.events import (
+    AskUserRequestedEvent,
     CoreStartedEvent,
     LlmModelSelectedEvent,
     LlmTokenEvent,
@@ -256,6 +257,11 @@ def generate() -> str:
         _model_section("LogLineEvent", LogLineEvent,
             {"type": "log.line", "run_id": run_id, "level": "INFO",
              "source": "kama_claude.core.loop", "message": "step 1 started", "ts": ts}),
+        "\n",
+        _model_section("AskUserRequestedEvent", AskUserRequestedEvent,
+            {"type": "ask_user.requested", "run_id": run_id, "request_id": "q1",
+             "question": "Continue?", "options": ["yes", "no"],
+             "session_id": session_id, "ts": ts}),
         "\n## Session Events\n\n",
         _model_section("SessionCreatedEvent", SessionCreatedEvent,
             {"type": "session.created", "session_id": session_id, "mode": "chat", "ts": ts}),

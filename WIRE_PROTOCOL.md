@@ -1576,6 +1576,85 @@ Events written to `runs/<run_id>/events.jsonl` and forwarded over IPC to subscri
 }
 ```
 
+### AskUserRequestedEvent
+
+| Field | Type | Required |
+|---|---|---|
+| `type` | `string` | no |
+| `run_id` | `string` | yes |
+| `request_id` | `string` | yes |
+| `question` | `string` | yes |
+| `options` | `array` | yes |
+| `session_id` | `string` | yes |
+| `ts` | `string` | yes |
+
+```json
+{
+  "properties": {
+    "type": {
+      "const": "ask_user.requested",
+      "default": "ask_user.requested",
+      "title": "Type",
+      "type": "string"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "request_id": {
+      "title": "Request Id",
+      "type": "string"
+    },
+    "question": {
+      "title": "Question",
+      "type": "string"
+    },
+    "options": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Options",
+      "type": "array"
+    },
+    "session_id": {
+      "title": "Session Id",
+      "type": "string"
+    },
+    "ts": {
+      "title": "Ts",
+      "type": "string"
+    }
+  },
+  "required": [
+    "run_id",
+    "request_id",
+    "question",
+    "options",
+    "session_id",
+    "ts"
+  ],
+  "title": "AskUserRequestedEvent",
+  "type": "object"
+}
+```
+
+**Example:**
+
+```json
+{
+  "type": "ask_user.requested",
+  "run_id": "20260516-100000-abc123",
+  "request_id": "q1",
+  "question": "Continue?",
+  "options": [
+    "yes",
+    "no"
+  ],
+  "session_id": "sess-abc123def456",
+  "ts": "2026-05-16T10:00:00.001Z"
+}
+```
+
 ## Session Events
 
 ### SessionCreatedEvent

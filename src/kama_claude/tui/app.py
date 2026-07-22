@@ -25,6 +25,7 @@ from kama_claude.core.transport.socket_client import IpcError, SocketClient
 from kama_claude.tui.permission_widgets import PermissionBlock, PermissionSelect
 from kama_claude.tui.plan_dialog import PlanDialog, parse_plan_summary
 from kama_claude.tui.team_tree import TeamTreeState, TeamTreeWidget
+from kama_claude.tui.ask_user_dialog import AskUserDialog, mount_dialog
 
 
 def _preview(s: str, n: int) -> str:
@@ -626,6 +627,21 @@ class KamaTuiApp(App[None]):
         except Exception:
             log.exception("on_permission_select_decided failed tool_use_id=%s", tool_use_id)
 
+    # 处理 AskUserDialog 用户的答案：通过 IPC 送回 daemon 端 question_store
+    async def on_ask_user_dialog_answered(self, msg: AskUserDialog.Answered) -> None:
+        try:
+            if self._client is not None:
+                asyncio.create_task(self._client.send_command(
+                    "ask_user.respond",
+                    {"request_id": msg.request_id, "answer": msg.answer},
+                ))
+            msg.widget.remove()
+            p = self._prompt()
+            if p is not None:
+                p.focus()
+        except Exception:
+            log.exception("on_ask_user_dialog_answered failed request_id=%s", msg.request_id)
+
     # 向日志视图追加一个 widget 并滚动到底部
     def _append(self, widget: Widget) -> None:
         log_view = self.query_one("#log-view", VerticalScroll)
@@ -727,6 +743,7 @@ class KamaTuiApp(App[None]):
                         "llm.usage",
                         "log.*",
                         "permission.*",
+                        "ask_user.*",
                         "context.*",
                         "subagent.*",
                         "skill.*",
@@ -990,6 +1007,13 @@ class KamaTuiApp(App[None]):
                         p.read_only = False
                         p.border_title = "type a message — enter to send, ⌘/⇧/⌥+enter for newline"
                         p.focus()
+
+        elif t == "ask_user.requested":
+            # 弹出一个 AskUserDialog 让用户作答；回答后会通过 on_ask_user_dialog_answered 回包
+            request_id = str(event.get("request_id", ""))
+            question = str(event.get("question", ""))
+            options = list(event.get("options", []) or [])
+            mount_dialog(self, request_id, question, options)
 
         elif t == "log.line":
             level = event.get("level", "INFO")

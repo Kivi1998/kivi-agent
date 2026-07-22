@@ -65,6 +65,10 @@ DEFAULT_POLICIES: dict[str, ToolPolicy] = {
     "team_status": ToolPolicy(default=PermissionDecision.ALLOW),
     # tool_search（agent: package-b）：只读，按关键词发现已注册工具
     "tool_search": ToolPolicy(default=PermissionDecision.ALLOW),
+    # ask_user（agent: package-c）：向用户提问会真正挂起 LLM 调用，需审批
+    "ask_user": ToolPolicy(default=PermissionDecision.ASK),
+    # rewind_file（agent: package-c）：覆盖文件内容，破坏性操作需审批
+    "rewind_file": ToolPolicy(default=PermissionDecision.ASK),
 }
 
 # 未在 DEFAULT_POLICIES 中登记的工具的兜底策略
@@ -83,6 +87,10 @@ _PREVIEW_KEY: dict[str, str] = {
     "enter_worktree": "name",
     # exit_worktree（agent: minimal-loop）：审批卡片展示工作树路径
     "exit_worktree":  "path",
+    # ask_user（agent: package-c）：审批卡片展示问题文本
+    "ask_user":   "question",
+    # rewind_file（agent: package-c）：审批卡片展示被还原的文件路径
+    "rewind_file": "path",
 }
 _PREVIEW_MAX = 60
 
