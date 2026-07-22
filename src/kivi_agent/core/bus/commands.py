@@ -110,6 +110,21 @@ class SetPermissionModeResult(BaseModel):
     ok: bool = True
 
 
+# ---- v1 §5.2.2 新增 SessionCancel 命令组（Wave 1 冻结）----
+
+
+class SessionCancelCommand(BaseModel):
+    type: Literal["session.cancel"] = "session.cancel"
+    session_id: str
+    reason: str = ""
+
+
+class SessionCancelResult(BaseModel):
+    session_id: str
+    cancelled: bool
+    ts: str
+
+
 # 根据 type 字段决定命令类型的判别联合
 Command = Annotated[
     PingCommand
@@ -121,6 +136,7 @@ Command = Annotated[
     | SessionCloseCommand
     | PermissionRespondCommand
     | SessionCompactCommand
-    | SetPermissionModeCommand,
+    | SetPermissionModeCommand
+    | SessionCancelCommand,
     Discriminator("type"),
 ]

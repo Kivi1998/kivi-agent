@@ -772,6 +772,95 @@ All commands are sent as JSON-RPC 2.0 requests. The `type` field inside `params`
 }
 ```
 
+### SessionCancelCommand
+
+| Field | Type | Required |
+|---|---|---|
+| `type` | `string` | no |
+| `session_id` | `string` | yes |
+| `reason` | `string` | no |
+
+```json
+{
+  "properties": {
+    "type": {
+      "const": "session.cancel",
+      "default": "session.cancel",
+      "title": "Type",
+      "type": "string"
+    },
+    "session_id": {
+      "title": "Session Id",
+      "type": "string"
+    },
+    "reason": {
+      "default": "",
+      "title": "Reason",
+      "type": "string"
+    }
+  },
+  "required": [
+    "session_id"
+  ],
+  "title": "SessionCancelCommand",
+  "type": "object"
+}
+```
+
+**Example:**
+
+```json
+{
+  "type": "session.cancel",
+  "session_id": "sess-abc123def456",
+  "reason": "user_requested"
+}
+```
+
+### SessionCancelResult
+
+| Field | Type | Required |
+|---|---|---|
+| `session_id` | `string` | yes |
+| `cancelled` | `boolean` | yes |
+| `ts` | `string` | yes |
+
+```json
+{
+  "properties": {
+    "session_id": {
+      "title": "Session Id",
+      "type": "string"
+    },
+    "cancelled": {
+      "title": "Cancelled",
+      "type": "boolean"
+    },
+    "ts": {
+      "title": "Ts",
+      "type": "string"
+    }
+  },
+  "required": [
+    "session_id",
+    "cancelled",
+    "ts"
+  ],
+  "title": "SessionCancelResult",
+  "type": "object"
+}
+```
+
+**Example:**
+
+```json
+{
+  "session_id": "sess-abc123def456",
+  "cancelled": true,
+  "ts": "2026-05-16T10:00:00.001Z"
+}
+```
+
 ## Server Push
 
 Events pushed from daemon to subscribed clients over the same TCP connection.
@@ -1510,6 +1599,65 @@ Events written to `runs/<run_id>/events.jsonl` and forwarded over IPC to subscri
 }
 ```
 
+### LlmThinkingEvent
+
+| Field | Type | Required |
+|---|---|---|
+| `type` | `string` | no |
+| `run_id` | `string` | yes |
+| `step` | `integer` | yes |
+| `content` | `string` | yes |
+| `ts` | `string` | yes |
+
+```json
+{
+  "properties": {
+    "type": {
+      "const": "llm.thinking",
+      "default": "llm.thinking",
+      "title": "Type",
+      "type": "string"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "step": {
+      "title": "Step",
+      "type": "integer"
+    },
+    "content": {
+      "title": "Content",
+      "type": "string"
+    },
+    "ts": {
+      "title": "Ts",
+      "type": "string"
+    }
+  },
+  "required": [
+    "run_id",
+    "step",
+    "content",
+    "ts"
+  ],
+  "title": "LlmThinkingEvent",
+  "type": "object"
+}
+```
+
+**Example:**
+
+```json
+{
+  "type": "llm.thinking",
+  "run_id": "20260516-100000-abc123",
+  "step": 1,
+  "content": "Let me reason about this...",
+  "ts": "2026-05-16T10:00:00.001Z"
+}
+```
+
 ### LogLineEvent
 
 | Field | Type | Required |
@@ -1651,6 +1799,328 @@ Events written to `runs/<run_id>/events.jsonl` and forwarded over IPC to subscri
     "no"
   ],
   "session_id": "sess-abc123def456",
+  "ts": "2026-05-16T10:00:00.001Z"
+}
+```
+
+### ChartRenderedEvent
+
+| Field | Type | Required |
+|---|---|---|
+| `type` | `string` | no |
+| `run_id` | `string` | yes |
+| `chart_id` | `string` | yes |
+| `option_dict` | `object` | yes |
+| `ts` | `string` | yes |
+
+```json
+{
+  "properties": {
+    "type": {
+      "const": "chart.rendered",
+      "default": "chart.rendered",
+      "title": "Type",
+      "type": "string"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "chart_id": {
+      "title": "Chart Id",
+      "type": "string"
+    },
+    "option_dict": {
+      "additionalProperties": true,
+      "title": "Option Dict",
+      "type": "object"
+    },
+    "ts": {
+      "title": "Ts",
+      "type": "string"
+    }
+  },
+  "required": [
+    "run_id",
+    "chart_id",
+    "option_dict",
+    "ts"
+  ],
+  "title": "ChartRenderedEvent",
+  "type": "object"
+}
+```
+
+**Example:**
+
+```json
+{
+  "type": "chart.rendered",
+  "run_id": "20260516-100000-abc123",
+  "chart_id": "chart-1",
+  "option_dict": {
+    "xAxis": {
+      "type": "category"
+    },
+    "series": [
+      {
+        "type": "bar"
+      }
+    ]
+  },
+  "ts": "2026-05-16T10:00:00.001Z"
+}
+```
+
+### RagSourcesCitedEvent
+
+| Field | Type | Required |
+|---|---|---|
+| `type` | `string` | no |
+| `run_id` | `string` | yes |
+| `sources` | `array` | yes |
+| `ts` | `string` | yes |
+
+```json
+{
+  "properties": {
+    "type": {
+      "const": "rag.sources_cited",
+      "default": "rag.sources_cited",
+      "title": "Type",
+      "type": "string"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "sources": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Sources",
+      "type": "array"
+    },
+    "ts": {
+      "title": "Ts",
+      "type": "string"
+    }
+  },
+  "required": [
+    "run_id",
+    "sources",
+    "ts"
+  ],
+  "title": "RagSourcesCitedEvent",
+  "type": "object"
+}
+```
+
+**Example:**
+
+```json
+{
+  "type": "rag.sources_cited",
+  "run_id": "20260516-100000-abc123",
+  "sources": [
+    {
+      "id": "doc-1",
+      "title": "Source 1"
+    },
+    {
+      "id": "doc-2",
+      "title": "Source 2"
+    }
+  ],
+  "ts": "2026-05-16T10:00:00.001Z"
+}
+```
+
+### FrontendToolCallRequested
+
+| Field | Type | Required |
+|---|---|---|
+| `type` | `string` | no |
+| `run_id` | `string` | yes |
+| `request_id` | `string` | yes |
+| `tool_name` | `string` | yes |
+| `args` | `object` | yes |
+| `ts` | `string` | yes |
+
+```json
+{
+  "properties": {
+    "type": {
+      "const": "frontend.tool_call_requested",
+      "default": "frontend.tool_call_requested",
+      "title": "Type",
+      "type": "string"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "request_id": {
+      "title": "Request Id",
+      "type": "string"
+    },
+    "tool_name": {
+      "title": "Tool Name",
+      "type": "string"
+    },
+    "args": {
+      "additionalProperties": true,
+      "title": "Args",
+      "type": "object"
+    },
+    "ts": {
+      "title": "Ts",
+      "type": "string"
+    }
+  },
+  "required": [
+    "run_id",
+    "request_id",
+    "tool_name",
+    "args",
+    "ts"
+  ],
+  "title": "FrontendToolCallRequested",
+  "type": "object"
+}
+```
+
+**Example:**
+
+```json
+{
+  "type": "frontend.tool_call_requested",
+  "run_id": "20260516-100000-abc123",
+  "request_id": "req-1",
+  "tool_name": "open_url",
+  "args": {
+    "url": "https://example.com"
+  },
+  "ts": "2026-05-16T10:00:00.001Z"
+}
+```
+
+### FrontendToolCallResponded
+
+| Field | Type | Required |
+|---|---|---|
+| `type` | `string` | no |
+| `run_id` | `string` | yes |
+| `request_id` | `string` | yes |
+| `result` | `object` | yes |
+| `ts` | `string` | yes |
+
+```json
+{
+  "properties": {
+    "type": {
+      "const": "frontend.tool_call_responded",
+      "default": "frontend.tool_call_responded",
+      "title": "Type",
+      "type": "string"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "request_id": {
+      "title": "Request Id",
+      "type": "string"
+    },
+    "result": {
+      "additionalProperties": true,
+      "title": "Result",
+      "type": "object"
+    },
+    "ts": {
+      "title": "Ts",
+      "type": "string"
+    }
+  },
+  "required": [
+    "run_id",
+    "request_id",
+    "result",
+    "ts"
+  ],
+  "title": "FrontendToolCallResponded",
+  "type": "object"
+}
+```
+
+**Example:**
+
+```json
+{
+  "type": "frontend.tool_call_responded",
+  "run_id": "20260516-100000-abc123",
+  "request_id": "req-1",
+  "result": {
+    "ok": true,
+    "data": [
+      1,
+      2,
+      3
+    ]
+  },
+  "ts": "2026-05-16T10:00:00.001Z"
+}
+```
+
+### RunCancelledEvent
+
+| Field | Type | Required |
+|---|---|---|
+| `type` | `string` | no |
+| `run_id` | `string` | yes |
+| `reason` | `string` | yes |
+| `ts` | `string` | yes |
+
+```json
+{
+  "properties": {
+    "type": {
+      "const": "run.cancelled",
+      "default": "run.cancelled",
+      "title": "Type",
+      "type": "string"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "reason": {
+      "title": "Reason",
+      "type": "string"
+    },
+    "ts": {
+      "title": "Ts",
+      "type": "string"
+    }
+  },
+  "required": [
+    "run_id",
+    "reason",
+    "ts"
+  ],
+  "title": "RunCancelledEvent",
+  "type": "object"
+}
+```
+
+**Example:**
+
+```json
+{
+  "type": "run.cancelled",
+  "run_id": "20260516-100000-abc123",
+  "reason": "user_requested",
   "ts": "2026-05-16T10:00:00.001Z"
 }
 ```
