@@ -8,6 +8,7 @@
 FastAPI 路由层在 `kivi_agent.gateway.main`（顶层 gateway 目录）。
 """
 
+from kivi_agent.core.gateway.adapter import RuntimeAdapter
 from kivi_agent.core.gateway.runtime import (
     AgentRuntime,
     Command,
@@ -38,6 +39,7 @@ __all__ = [
     "RagSourcesCitedEvent",
     "Result",
     "RunCancelledEvent",
+    "RuntimeAdapter",
     "SessionCancelCommand",
     "SessionCancelResult",
     "SessionInfo",
