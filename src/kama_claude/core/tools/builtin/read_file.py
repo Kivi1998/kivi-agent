@@ -5,6 +5,7 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict
 
 from kama_claude.core.tools.base import BaseTool, ToolResult
+from kama_claude.core.tools.file_state_cache import FileStateCache
 
 _MAX_BYTES = 512 * 1024  # 512 KB
 
@@ -34,7 +35,12 @@ class ReadFileTool(BaseTool):
         "required": ["path"],
     }
 
-    # 读取文件内容；超 512KB 截断；禁止 .. 路径遍历
+    # 初始化：注入可选的 FileStateCache；不传时跳过记录（不破坏现有调用方）
+    def __init__(self, file_state_cache: FileStateCache | None = None) -> None:
+        super().__init__()
+        self._cache = file_state_cache
+
+    # 读取文件内容；超 512KB 截断；禁止 .. 路径遍历；读成功后写入 FileStateCache
     async def invoke(self, params: dict[str, object]) -> ToolResult:
         path_str = ReadFileParams.model_validate(params).path
 
@@ -47,5 +53,9 @@ class ReadFileTool(BaseTool):
         text = raw[:_MAX_BYTES].decode("utf-8", errors="replace")
         if truncated:
             text += "\n[truncated]"
+
+        # 读成功后再记——失败不污染缓存
+        if self._cache is not None:
+            self._cache.record(path)
 
         return ToolResult(content=text)
