@@ -41,6 +41,7 @@ from kivi_agent.core.tools.builtin import (
     EditFileTool,
     ExitPlanModeTool,
     ListDirTool,
+    MapLoadTool,
     NoteSaveTool,
     ReadFileTool,
     RewindFileTool,
@@ -283,6 +284,9 @@ class AgentRunner:
         # memory_recall（agent: package-c-v1）
         if _ok("memory_recall"):
             registry.register(MemoryRecallTool())
+        # map_load（agent: package-demo-v7）：前端地图 Tool，加载公开 GeoJSON + 推 map.geojson_loaded 事件
+        if _ok("map_load"):
+            registry.register(MapLoadTool(bus=bus))
         return registry
 
     # 执行一次完整的 agent run（委托给 run_and_capture，忽略返回值）

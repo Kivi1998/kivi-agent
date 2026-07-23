@@ -17,7 +17,7 @@ from typing import ClassVar, Literal, cast
 from kivi_agent.core.agents.loader import AgentProfile, AgentProfileLoader
 
 # 业务 Profile 意图类型；synthesizer 仅作为多意图汇总兜底
-BusinessIntent = Literal["rag", "web_search", "database", "general", "synthesizer"]
+BusinessIntent = Literal["rag", "web_search", "database", "frontend_tool", "general", "synthesizer"]
 
 # 各意图对应的"必须存在的"业务 Tool（路由降级校验用）
 # 任何 Profile 若要承接该意图，allowed_tools 必须包含此集合
@@ -25,6 +25,7 @@ _INTENT_REQUIRED_TOOLS: dict[str, frozenset[str]] = {
     "rag": frozenset({"rag_query"}),
     "web_search": frozenset({"web_search"}),
     "database": frozenset({"query_database"}),
+    "frontend_tool": frozenset({"web_search", "map_load"}),  # frontend_tool 走 web_search + map_load
     "general": frozenset(),  # general 只需基础工具，不强制业务 Tool
     "synthesizer": frozenset(),  # synthesizer 只需基础工具，不强制业务 Tool
 }
@@ -60,10 +61,17 @@ class BusinessRouter:
         "rag": ["我们公司", "内部文档", "FAQ", "知识库", "内部资料"],
         "web_search": ["网上", "最新", "搜一下", "搜一搜", "互联网", "新闻"],
         "database": ["表", "字段", "统计", "数量", "SUM", "COUNT", "AVG", "数据库", "问数"],
+        "frontend_tool": ["地图", "加载", "前端", "渲染", "GeoJSON", "map"],
     }
 
-    # 路由优先级：database > rag > web_search > general（多意图时按此排序）
-    ROUTE_PRIORITY: ClassVar[list[str]] = ["database", "rag", "web_search", "general"]
+    # 路由优先级：database > rag > web_search > frontend_tool > general（多意图时按此排序）
+    ROUTE_PRIORITY: ClassVar[list[str]] = [
+        "database",
+        "rag",
+        "web_search",
+        "frontend_tool",
+        "general",
+    ]
 
     # 单 Profile → 期望业务 Tool（与 _INTENT_REQUIRED_TOOLS 保持一致；外部可见）
     INTENT_TOOL_REQUIREMENTS: ClassVar[dict[str, frozenset[str]]] = _INTENT_REQUIRED_TOOLS
