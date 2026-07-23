@@ -89,3 +89,9 @@ python_files = ["test_*.py"]
 markers = [
     "integration: marks tests that call the real Anthropic API (require ANTHROPIC_API_KEY)",
 ]
+# Wave 7 WT-K3：3 类基线测试默认跳过（env guard 由各测试文件自己用 pytest.mark.skipif 实现）
+# - 故障注入: KIVI_RUN_FAILURE=1
+# - 性能基线: KIVI_RUN_PERF=1
+# - 安全基线: KIVI_RUN_SECURITY=1
+# 普通 `uv run pytest` 不会跑这 3 类；CI / 演示需要时显式打开 env
+# （参见 tests/integration/test_failure_injection.py / tests/performance/test_benchmarks.py / tests/security/test_security_baseline.py）
