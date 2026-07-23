@@ -22,10 +22,10 @@ from textual.widgets import Button, Label, Static, TextArea
 from kivi_agent.core.config import KamaConfig
 from kivi_agent.core.skills.loader import SkillLoader
 from kivi_agent.core.transport.socket_client import IpcError, SocketClient
+from kivi_agent.tui.ask_user_dialog import AskUserDialog, mount_dialog
 from kivi_agent.tui.permission_widgets import PermissionBlock, PermissionSelect
 from kivi_agent.tui.plan_dialog import PlanDialog, parse_plan_summary
 from kivi_agent.tui.team_tree import TeamTreeState, TeamTreeWidget
-from kivi_agent.tui.ask_user_dialog import AskUserDialog, mount_dialog
 
 
 def _preview(s: str, n: int) -> str:

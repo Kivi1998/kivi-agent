@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 from kivi_agent.core.agents.loader import AgentProfile, AgentProfileLoader
 from kivi_agent.core.permissions.modes import PermissionMode

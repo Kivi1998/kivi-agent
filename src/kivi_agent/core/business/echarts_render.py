@@ -85,7 +85,7 @@ class EchartsRenderTool(BaseBusinessTool):
             p = EchartsRenderParams.model_validate(params)
         except ValidationError as e:
             return ToolResult(
-                content=json.dumps({"error": "invalid_params", "detail": e.errors()}, ensure_ascii=False),
+                content=json.dumps({"error": "invalid_params", "detail": e.errors()}, ensure_ascii=False),  # noqa: E501
                 is_error=True,
                 error_type="schema_error",
             )
@@ -149,7 +149,7 @@ def _empty_option(chart_type: str) -> dict[str, Any]:
         "title": {"text": "Empty Data"},
         "xAxis": {"type": "category", "data": []},
         "yAxis": {"type": "value"},
-        "series": [{"type": chart_type if chart_type in SUPPORTED_CHART_TYPES else "bar", "data": []}],
+        "series": [{"type": chart_type if chart_type in SUPPORTED_CHART_TYPES else "bar", "data": []}],  # noqa: E501
     }
 
 

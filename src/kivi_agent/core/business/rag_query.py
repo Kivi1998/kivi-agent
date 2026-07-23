@@ -81,7 +81,7 @@ class RagQueryTool(BaseBusinessTool):
             p = RagQueryParams.model_validate(params)
         except ValidationError as e:
             return ToolResult(
-                content=json.dumps({"error": "invalid_params", "detail": e.errors()}, ensure_ascii=False),
+                content=json.dumps({"error": "invalid_params", "detail": e.errors()}, ensure_ascii=False),  # noqa: E501
                 is_error=True,
                 error_type="schema_error",
             )
@@ -105,7 +105,7 @@ class RagQueryTool(BaseBusinessTool):
 
 
 # 演示版 query rewrite（agent: package-c-v1）
-# 真实实现：调 LLM 改写对话式 query 为独立可检索 query（aigroup rag_query_rewrite_service.py 191 行）
+# 真实实现：调 LLM 改写对话式 query 为独立可检索 query（aigroup rag_query_rewrite_service.py 191 行）  # noqa: E501
 def _mock_query_rewrite(query: str, knowledge_base_id: str | None) -> str:
     """演示版 query rewrite：原 query + " [refined]"。
 

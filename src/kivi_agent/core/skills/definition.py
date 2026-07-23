@@ -13,7 +13,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
-
 # 合法的 Skill 分类：与 aigroup 5 类对齐（v1 §1 Tool 命名侧正交）
 SkillCategory = Literal["general", "rag", "web_search", "database", "tool"]
 
@@ -94,7 +93,7 @@ class SkillDefinition:
 
     # 从 .md 文件解析 SkillDefinition（兼容 Skills 2.0 新字段；未声明则用默认值）
     @classmethod
-    def from_file(cls, path: Path, *, source: str = "builtin") -> "SkillDefinition":
+    def from_file(cls, path: Path, *, source: str = "builtin") -> SkillDefinition:
         text = path.read_text(encoding="utf-8")
         name = path.stem
         description = ""

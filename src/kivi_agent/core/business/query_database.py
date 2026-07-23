@@ -73,7 +73,7 @@ class QueryDatabaseTool(BaseBusinessTool):
         "properties": {
             "question": {
                 "type": "string",
-                "description": "Natural language question, e.g. 'top products by sales last month'.",
+                "description": "Natural language question, e.g. 'top products by sales last month'.",  # noqa: E501
             },
             "datasource_id": {
                 "type": "string",
@@ -92,7 +92,7 @@ class QueryDatabaseTool(BaseBusinessTool):
             p = QueryDatabaseParams.model_validate(params)
         except ValidationError as e:
             return ToolResult(
-                content=json.dumps({"error": "invalid_params", "detail": e.errors()}, ensure_ascii=False),
+                content=json.dumps({"error": "invalid_params", "detail": e.errors()}, ensure_ascii=False),  # noqa: E501
                 is_error=True,
                 error_type="schema_error",
             )

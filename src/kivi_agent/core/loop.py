@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
@@ -9,7 +10,6 @@ from kivi_agent.core.context import ExecutionContext
 from kivi_agent.core.events.bus import EventBus
 from kivi_agent.core.llm.base import LLMProvider
 from kivi_agent.core.tools.registry import ToolRegistry
-import logging
 
 if TYPE_CHECKING:
     from kivi_agent.core.compact.compactor import Compactor
@@ -96,7 +96,10 @@ class AgentLoop:
 
             # [act] execute each requested tool; errors become tool results so loop continues
             if response.stop_reason == "tool_use":
-                from kivi_agent.core.tools.executor import execute_tool_batches, partition_tool_calls
+                from kivi_agent.core.tools.executor import (
+                    execute_tool_batches,
+                    partition_tool_calls,
+                )
                 batches = partition_tool_calls(response.tool_calls, self._registry)
                 pairs = await execute_tool_batches(
                     batches, self._registry, self._bus, context.run_id,

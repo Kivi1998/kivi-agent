@@ -5,8 +5,6 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
-
 from kivi_agent.core.compact.compactor import Compactor
 from kivi_agent.core.context import ExecutionContext
 from kivi_agent.core.events.bus import EventBus

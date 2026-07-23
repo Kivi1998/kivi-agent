@@ -59,7 +59,7 @@ class WebSearchTool(BaseBusinessTool):
             p = WebSearchParams.model_validate(params)
         except ValidationError as e:
             return ToolResult(
-                content=json.dumps({"error": "invalid_params", "detail": e.errors()}, ensure_ascii=False),
+                content=json.dumps({"error": "invalid_params", "detail": e.errors()}, ensure_ascii=False),  # noqa: E501
                 is_error=True,
                 error_type="schema_error",
             )

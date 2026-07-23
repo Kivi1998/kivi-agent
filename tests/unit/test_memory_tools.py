@@ -22,7 +22,6 @@ from pydantic import ValidationError
 
 from kivi_agent.core.business.memory_recall import MemoryRecallTool
 from kivi_agent.core.business.memory_save import MemorySaveTool
-from kivi_agent.core.tools.base import ToolResult
 
 
 # 每个测试用独立 tmp 目录，避免相互污染

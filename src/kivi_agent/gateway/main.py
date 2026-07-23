@@ -36,19 +36,17 @@ except ImportError as e:  # pragma: no cover - 由调用方处理
         "请先运行 `uv sync --group dev` 或 `uv pip install 'kivi-agent[gateway]'`。"
     ) from e
 
-from kivi_agent.core.gateway.runtime import (
-    AgentRuntime,
-    SessionInfo,
-)
 from kivi_agent.core.bus.commands import (
     SessionCancelCommand,
     SessionCancelResult,
 )
-from kivi_agent.core.gateway.ws_bridge import WebSocketBridge
+from kivi_agent.core.gateway.runtime import (
+    AgentRuntime,
+    SessionInfo,
+)
 from kivi_agent.gateway.deps import (
     get_runtime,
     get_runtime_from_state,
-    get_ws_bridge,
     get_ws_bridge_from_state,
 )
 

@@ -12,7 +12,6 @@ from pathlib import Path
 from kivi_agent.core.skills.definition import SkillDefinition
 from kivi_agent.core.skills.registry import SkillRegistry
 
-
 # 6 个内建 skill 名（按注册顺序展示）
 BUILTIN_SKILLS_V1: tuple[str, ...] = (
     "init",

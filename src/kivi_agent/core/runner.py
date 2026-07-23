@@ -29,7 +29,7 @@ from kivi_agent.core.memory.recall import build_memory_prompt
 from kivi_agent.core.memory.store import MemoryStore
 from kivi_agent.core.permissions.manager import PermissionManager
 from kivi_agent.core.runs import RUNS_DIR, new_run_id
-from kivi_agent.core.session.checkpoint import CheckpointData, CheckpointStore
+from kivi_agent.core.session.checkpoint import CheckpointStore
 from kivi_agent.core.session.model import Session
 from kivi_agent.core.session.store import SessionStore
 from kivi_agent.core.subagent.registry import BackgroundTaskRegistry

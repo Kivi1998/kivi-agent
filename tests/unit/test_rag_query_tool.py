@@ -25,7 +25,6 @@ from kivi_agent.core.business.rag_query import (
     _mock_query_rewrite,
     _mock_retrieval,
 )
-from kivi_agent.core.tools.base import ToolResult
 
 
 # 功能：rag_query Tool 协议字段正确

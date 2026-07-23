@@ -5,8 +5,8 @@
                     SkillContentReader / SkillScriptExecutor
 """
 from kivi_agent.core.skills.content_reader import (
-    ContentTooLargeError,
     DEFAULT_MAX_BYTES,
+    ContentTooLargeError,
     SkillContentReader,
 )
 from kivi_agent.core.skills.definition import SkillDefinition

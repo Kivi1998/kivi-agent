@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Protocol
-
-import pytest
 
 from kivi_agent.core.memory.backend import MemoryAuditEvent, MemoryBackend, MemoryItem
 

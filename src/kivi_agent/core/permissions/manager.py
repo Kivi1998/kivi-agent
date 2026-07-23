@@ -10,6 +10,7 @@ from datetime import UTC
 from pathlib import Path
 from typing import Any
 
+from kivi_agent.core.permissions.modes import PermissionMode, mode_override
 from kivi_agent.core.permissions.policy import (
     DEFAULT_POLICIES,
     PermissionDecision,
@@ -17,7 +18,6 @@ from kivi_agent.core.permissions.policy import (
     matches_outside_cwd,
     param_preview,
 )
-from kivi_agent.core.permissions.modes import PermissionMode, mode_override
 from kivi_agent.core.permissions.storage import load_policy_file, save_policy_file
 
 logger = logging.getLogger(__name__)
@@ -161,7 +161,7 @@ class PermissionManager:
                 raw = await asyncio.wait_for(future, timeout=self._timeout_s)
             else:
                 raw = await future
-        except asyncio.TimeoutError:
+        except TimeoutError:
             self._pending.pop(tool_use_id, None)
             logger.info("permission: timeout tool_use_id=%s tool=%s", tool_use_id, tool_name)
             return False, "timeout"

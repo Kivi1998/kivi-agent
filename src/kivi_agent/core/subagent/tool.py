@@ -40,10 +40,10 @@ def _now() -> str:
 # 创建并注册一个后台运行的子 agent，返回其 run_id；供 SpawnAgentTool 和 TeamManager 共用
 async def spawn_background_subagent(
     *,
-    provider: "LLMProvider",
+    provider: LLMProvider,
     parent_bus: EventBus,
     parent_run_id: str,
-    permission_manager: "PermissionManager | None",
+    permission_manager: PermissionManager | None,
     max_steps: int,
     task_registry: BackgroundTaskRegistry,
     runs_dir: Path,

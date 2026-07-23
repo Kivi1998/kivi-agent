@@ -20,8 +20,6 @@ from kivi_agent.core.business.echarts_render import (
     SUPPORTED_CHART_TYPES,
     EchartsRenderTool,
 )
-from kivi_agent.core.tools.base import ToolResult
-
 
 # 演示版固定测试数据
 SAMPLE_ROWS: list[dict[str, object]] = [

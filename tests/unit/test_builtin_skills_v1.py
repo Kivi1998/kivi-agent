@@ -8,8 +8,6 @@
 """
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from kivi_agent.core.skills.builtin import (
@@ -20,7 +18,6 @@ from kivi_agent.core.skills.builtin import (
 )
 from kivi_agent.core.skills.definition import SkillDefinition
 from kivi_agent.core.skills.loader import SkillLoader
-
 
 # ─────────────────────────── 6 个 skill 文件存在 ───────────────────────────
 

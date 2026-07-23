@@ -17,8 +17,8 @@ from typing import Any
 
 import pytest
 
-from kivi_agent.core.gateway.adapter import RuntimeAdapter
 from kivi_agent.core.bus.commands import SessionCancelCommand
+from kivi_agent.core.gateway.adapter import RuntimeAdapter
 from kivi_agent.core.transport.socket_client import SocketClient
 
 type Handler = Callable[[asyncio.StreamReader, asyncio.StreamWriter], Awaitable[None]]
@@ -271,7 +271,6 @@ async def test_get_session_returns_info_when_exists() -> None:
 
 
 async def test_get_session_returns_none_when_missing() -> None:
-    core = _MockCore()
     # get_history 返回 SESSION_NOT_FOUND
     async def handle_history(
         reader: asyncio.StreamReader, writer: asyncio.StreamWriter

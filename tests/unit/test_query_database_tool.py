@@ -22,7 +22,6 @@ from kivi_agent.core.business.query_database import (
     _mock_step1_generate_sql,
     _mock_step2_execute,
 )
-from kivi_agent.core.tools.base import ToolResult
 
 
 @pytest.fixture(autouse=True)

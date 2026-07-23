@@ -8,14 +8,11 @@ SkillManager 是对外统一入口：
 """
 from __future__ import annotations
 
-import pytest
-
 from kivi_agent.core.skills.builtin import BUILTIN_SKILLS_V1
 from kivi_agent.core.skills.definition import SkillDefinition
 from kivi_agent.core.skills.loader import Skill
 from kivi_agent.core.skills.manager import SkillManager
 from kivi_agent.core.skills.registry import SkillRegistry
-
 
 # ─────────────────────────── 构造 ───────────────────────────
 

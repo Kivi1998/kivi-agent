@@ -10,7 +10,6 @@ import pytest
 
 from kivi_agent.core.skills.definition import SkillDefinition
 
-
 # ─────────────────────────── 双模式默认值 ───────────────────────────
 
 

@@ -67,14 +67,14 @@ def test_base_business_tool_basic_attributes() -> None:
 
 # 功能：Pydantic 风格的 input_schema 校验——缺必填字段应该抛 ValidationError
 def test_input_schema_validation_missing_required() -> None:
-    tool = _SampleBusinessTool()
+    _SampleBusinessTool()
     with pytest.raises(ValidationError):
         _SampleParams.model_validate({})
 
 
 # 功能：Pydantic 风格的 input_schema 校验——正常输入通过
 def test_input_schema_validation_valid() -> None:
-    tool = _SampleBusinessTool()
+    _SampleBusinessTool()
     p = _SampleParams.model_validate({"query": "hello"})
     assert p.query == "hello"
 

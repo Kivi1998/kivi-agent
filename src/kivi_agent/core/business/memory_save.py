@@ -21,7 +21,7 @@ from kivi_agent.core.business.memory_backend import LongTermMemoryBackend, LongT
 from kivi_agent.core.tools.base import ToolResult
 
 # v1 长期记忆类型（按 C 报告 §6.6 与 aigroup 对齐 + kivi 已有 reference）
-MemoryTypeLiteral = Literal["fact", "preference", "decision", "instruction", "correction", "summary", "reference"]
+MemoryTypeLiteral = Literal["fact", "preference", "decision", "instruction", "correction", "summary", "reference"]  # noqa: E501
 
 
 # memory_save 输入参数（agent: package-c-v1）
@@ -71,7 +71,7 @@ class MemorySaveTool(BaseBusinessTool):
             },
             "memory_type": {
                 "type": "string",
-                "enum": ["fact", "preference", "decision", "instruction", "correction", "summary", "reference"],
+                "enum": ["fact", "preference", "decision", "instruction", "correction", "summary", "reference"],  # noqa: E501
                 "default": "fact",
                 "description": "Memory type. Default: fact.",
             },
@@ -97,7 +97,7 @@ class MemorySaveTool(BaseBusinessTool):
             p = MemorySaveParams.model_validate(params)
         except ValidationError as e:
             return ToolResult(
-                content=json.dumps({"error": "invalid_params", "detail": e.errors()}, ensure_ascii=False),
+                content=json.dumps({"error": "invalid_params", "detail": e.errors()}, ensure_ascii=False),  # noqa: E501
                 is_error=True,
                 error_type="schema_error",
             )

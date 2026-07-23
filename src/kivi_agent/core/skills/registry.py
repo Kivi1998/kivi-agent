@@ -15,7 +15,6 @@ from typing import Literal
 
 from kivi_agent.core.skills.definition import SkillDefinition
 
-
 logger = logging.getLogger(__name__)
 
 

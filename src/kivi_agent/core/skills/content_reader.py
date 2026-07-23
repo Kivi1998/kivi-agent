@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-
 # 默认正文 / reference 大小上限：64KB（与 aigroup SKILL_SCRIPT_MAX_OUTPUT_BYTES 解耦，
 # 此处管"输入正文大小"，那里管"脚本输出大小"）
 DEFAULT_MAX_BYTES = 64 * 1024  # 64KB

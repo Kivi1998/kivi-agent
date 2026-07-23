@@ -15,7 +15,6 @@ from kivi_agent.core.skills.definition import SkillDefinition
 from kivi_agent.core.skills.loader import Skill
 from kivi_agent.core.skills.registry import SkillRegistry
 
-
 logger = logging.getLogger(__name__)
 
 

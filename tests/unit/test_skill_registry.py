@@ -7,8 +7,6 @@
 """
 from __future__ import annotations
 
-import pytest
-
 from kivi_agent.core.skills.definition import SkillDefinition
 from kivi_agent.core.skills.registry import SkillRegistry
 

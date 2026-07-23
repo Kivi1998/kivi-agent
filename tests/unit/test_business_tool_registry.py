@@ -11,13 +11,11 @@
 from __future__ import annotations
 
 import json
-import re
 from pathlib import Path
 
 import pytest
 
 from kivi_agent.core.permissions.policy import DEFAULT_POLICIES, PermissionDecision
-
 
 # v1 §1 冻结的 6 个业务 Tool 名称
 SIX_BUSINESS_TOOLS: tuple[str, ...] = (

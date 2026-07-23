@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 # 提取 AgentRuntime（测试时直接注入；生产时由 lifespan 创建 RuntimeAdapter）
-def get_runtime(request: "Request") -> AgentRuntime:
+def get_runtime(request: Request) -> AgentRuntime:
     state = request.app.state
     injected: AgentRuntime | None = getattr(state, "injected_runtime", None)
     if injected is not None:
@@ -40,7 +40,7 @@ def get_runtime(request: "Request") -> AgentRuntime:
 
 
 # 懒构造 WebSocketBridge 并缓存到 app.state
-def get_ws_bridge(request: "Request", *, runtime: AgentRuntime) -> WebSocketBridge:
+def get_ws_bridge(request: Request, *, runtime: AgentRuntime) -> WebSocketBridge:
     state = request.app.state
     bridge: WebSocketBridge | None = getattr(state, "ws_bridge", None)
     if bridge is None:
