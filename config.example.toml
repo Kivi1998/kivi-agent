@@ -1,0 +1,36 @@
+# kivi-agent Wave 4 配置示例（agent: package-config-v4）
+# 复制为 config.toml 或用 KIVI_* 环境变量覆盖（环境变量优先级最高）
+# 完整覆盖路径由 ConfigRuntime.load(config_path=...) 指定
+#
+# 注意：TOML 中一旦进入 [section]，后续 key-value 都属于该 section 直到新 section header。
+# 故 `auto_fallback` 放在文件开头（所有 section 之前），才能成为顶层 key。
+
+# 真实服务不可用时是否自动降级到 Mock（true / false）
+auto_fallback = true
+
+[rag]
+# RAG Adapter 模式：
+#   mock    — 演示版（默认；无需真实服务）
+#   http    — 真实 rag-kb HTTP API
+mode = "mock"
+# 真实 rag-kb API 地址（仅 mode=http 时生效）
+api_url = "http://localhost:8001"
+# HTTP 调用超时（秒；正数）
+timeout_s = 5.0
+
+[db]
+# DB Adapter 模式：
+#   mock     — 演示版（默认；内存数据）
+#   sqlite   — 真实 SQLite（本地文件）
+#   postgres — 真实 Postgres（需 asyncpg）
+mode = "mock"
+# 数据库连接 URL：
+#   sqlite:    "sqlite:///~/.kivi/kivi.db"
+#   postgres:  "postgresql://user:pass@localhost:5432/kivi"
+database_url = "sqlite:///~/.kivi/kivi.db"
+
+[health]
+# 健康检查间隔（秒；正数）
+interval_s = 60.0
+# 单次健康检查超时（秒；正数）
+timeout_s = 3.0
