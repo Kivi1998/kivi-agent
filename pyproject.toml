@@ -24,6 +24,7 @@ dependencies = [
 kivi = "kivi_agent.cli.main:main"
 kivi-core = "kivi_agent.core.app:run"
 kivi-tui = "kivi_agent.tui.__main__:main"
+kivi-eval = "kivi_agent.cli.eval:main"
 
 # ---- Hatch：打 wheel 时从 src 布局收录包 ----
 [tool.hatch.build.targets.wheel]
