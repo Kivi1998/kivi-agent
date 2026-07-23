@@ -68,16 +68,6 @@ class LocalMemoryBackend:
         if path.exists():
             path.unlink()
 
-    # 列出全部已写入的记忆（按 id 排序）；用于过期扫描等需要遍历全量的场景
-    async def list_all(self) -> list[MemoryItem]:
-        results: list[MemoryItem] = []
-        for path in sorted(self.root.glob("*.md")):
-            item = self._parse(path)
-            if item is None:
-                continue
-            results.append(item)
-        return results
-
     # 把审计事件追加到 audit.log（NDJSON 风格的事件溯源基础）
     async def audit(self, event: MemoryAuditEvent) -> None:
         log = self.root / _AUDIT_LOG
