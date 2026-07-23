@@ -479,6 +479,12 @@ def _register_routes(app: FastAPI) -> None:
 
     app.include_router(build_team_dashboard_router())
 
+    # Wave 5.2 Coding Dashboard（agent: package-dashboard-api-v52）
+    # 新增 /api/coding/* 5 端点：复用 CodingResultStore（~/.kama/eval/coding.jsonl）
+    from kivi_agent.gateway.coding_dashboard import build_coding_dashboard_router
+
+    app.include_router(build_coding_dashboard_router())
+
     @app.websocket("/sessions/{session_id}/ws")
     async def session_events_ws(
         session_id: str,
