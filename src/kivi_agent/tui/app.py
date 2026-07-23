@@ -7,8 +7,6 @@ import time
 from pathlib import Path
 from typing import Any
 
-log = logging.getLogger(__name__)
-
 from rich.markdown import Markdown
 from textual import events
 from textual.app import App, ComposeResult
@@ -19,13 +17,26 @@ from textual.message import Message
 from textual.widget import Widget
 from textual.widgets import Button, Label, Static, TextArea
 
+from kivi_agent.core.agents.business_router import BusinessRouter
+from kivi_agent.core.bus.events import (
+    ChartRenderedEvent,
+    RagSourcesCitedEvent,
+)
+from kivi_agent.core.bus.handlers.business import BusinessEventHandler
 from kivi_agent.core.config import KamaConfig
+from kivi_agent.core.events.bus import EventBus
 from kivi_agent.core.skills.loader import SkillLoader
 from kivi_agent.core.transport.socket_client import IpcError, SocketClient
 from kivi_agent.tui.ask_user_dialog import AskUserDialog, mount_dialog
+from kivi_agent.tui.business_event_widget import BusinessEventWidget
+from kivi_agent.tui.chart_metadata_widget import ChartMetadataWidget
+from kivi_agent.tui.citation_widget import CitationWidget
 from kivi_agent.tui.permission_widgets import PermissionBlock, PermissionSelect
 from kivi_agent.tui.plan_dialog import PlanDialog, parse_plan_summary
+from kivi_agent.tui.route_panel import RoutePanel
 from kivi_agent.tui.team_tree import TeamTreeState, TeamTreeWidget
+
+log = logging.getLogger(__name__)
 
 
 def _preview(s: str, n: int) -> str:
@@ -408,6 +419,12 @@ class KamaTuiApp(App[None]):
         self._subagent_run_ids: dict[str, str] = {}  # child run_id -> description
         self._subagent_start_times: dict[str, float] = {}  # child run_id -> start time
         self._team_tree_state = TeamTreeState()
+        # 业务 Agent 真实链路：路由 + 业务事件 handler + 当前活跃 widget（agent: package-tui-integration-v2）  # noqa: E501
+        self._business_router = BusinessRouter()
+        self._business_event_bus = EventBus()
+        self._business_handler: BusinessEventHandler | None = None
+        self._active_event_widget: BusinessEventWidget | None = None
+        self._active_route_panel: RoutePanel | None = None
 
     def compose(self) -> ComposeResult:
         yield Label("[bold]kivi-agent[/bold]  [dim]connecting...[/dim]", id="header")
@@ -418,6 +435,8 @@ class KamaTuiApp(App[None]):
         self._slash_items = self._build_slash_items()
         self._append(Static(self._BANNER, id="banner"))
         self.run_worker(self._socket_loop(), exclusive=True, name="socket")
+        # 业务事件 widget 轮询刷新（WT-D2 方案：避免动 EventBus 双向耦合）
+        self.set_interval(0.3, self._refresh_business_event_widget)
         prompt = self.query_one("#prompt", ChatTextArea)
         prompt.disabled = True
         prompt.border_title = "connecting..."
@@ -789,6 +808,15 @@ class KamaTuiApp(App[None]):
         except Exception:
             log.exception("_handle_event crashed  event_type=%s", event.get("type", "?"))
 
+    # 业务事件 widget 轮询刷新回调：每 0.3s 拉一次 handler 的 log 重绘（agent: package-tui-integration-v2）  # noqa: E501
+    def _refresh_business_event_widget(self) -> None:
+        widget = self._active_event_widget
+        if widget is not None and widget.is_mounted:
+            try:
+                widget.refresh_log()
+            except Exception as e:
+                log.debug("business event widget refresh failed: %s", e)
+
     # 实际的事件路由逻辑
     def _handle_event_inner(self, event: dict[str, Any]) -> None:
         t = event.get("type", "")
@@ -826,10 +854,49 @@ class KamaTuiApp(App[None]):
         elif t == "run.started":
             run_id = event.get("run_id", "")
             goal = event.get("goal", "")
+            # 业务 Agent 真实链路：本地 router 重算 + 启动 BusinessEventHandler + mount 2 个 widget
+            try:
+                decision = self._business_router.route(goal)
+                if self._active_route_panel is not None:
+                    self._active_route_panel.remove()
+                self._active_route_panel = RoutePanel(decision)
+                self._append(self._active_route_panel)
+            except Exception as e:
+                log.warning("RoutePanel mount failed: %s", e)
+            if self._business_handler is not None:
+                self._business_handler.stop()
+            self._business_handler = BusinessEventHandler(self._business_event_bus)
+            self._business_handler.start(run_id)
+            if self._active_event_widget is not None:
+                try:
+                    self._active_event_widget.remove()
+                except NoMatches:
+                    pass
+            self._active_event_widget = BusinessEventWidget(self._business_handler, run_id)
+            self._append(self._active_event_widget)
             self._append(Static(
                 f"[dim]run[/dim]  [cyan]{run_id}[/cyan]  [dim]{_preview(goal, 96)}[/dim]",
                 classes="run-header",
             ))
+
+        elif t == "rag.sources_cited":
+            # RAG 引用：mount CitationWidget（agent: package-tui-integration-v2）
+            try:
+                rag_evt = RagSourcesCitedEvent.model_validate(event)
+                self._append(CitationWidget(rag_evt))
+            except Exception as e:
+                log.warning("CitationWidget mount failed: %s", e)
+
+        elif t == "chart.rendered":
+            # ECharts 元数据：mount ChartMetadataWidget（agent: package-tui-integration-v2）
+            try:
+                chart_evt = ChartRenderedEvent.model_validate(event)
+                self._append(ChartMetadataWidget(chart_evt))
+            except Exception as e:
+                log.warning("ChartMetadataWidget mount failed: %s", e)
+
+        # TODO: synthesizer.completed 事件当前不存在；SynthesizerView 需等 SynthesizerRunner
+        # 把 SynthesizedResult 经新事件推回 bus 后才能 mount。此 TODO 跟踪 Wave 3+。
 
         elif t == "skill.invoked":
             skill_name = event.get("skill_name", "")
@@ -927,6 +994,10 @@ class KamaTuiApp(App[None]):
             status = event.get("status", "")
             steps = event.get("steps", 0)
             reason = event.get("reason") or ""
+            # 业务事件 handler 收尾（agent: package-tui-integration-v2）
+            if self._business_handler is not None:
+                self._business_handler.stop()
+                self._business_handler = None
             if status == "success":
                 self._append(Static(
                     f"[bold green]✓ completed[/bold green]  [dim]{steps} steps[/dim]",
@@ -991,10 +1062,10 @@ class KamaTuiApp(App[None]):
         elif t == "permission.denied":
             # 处理超时或断连等非用户交互触发的 deny（用户主动 deny 已由 on_permission_select_decided 处理）
             tool_use_id = str(event.get("tool_use_id", ""))
-            decision = str(event.get("decision", "denied"))
+            perm_decision = str(event.get("decision", "denied"))
             if tool_use_id in self._pending_permission_blocks:
                 perm_block = self._pending_permission_blocks.pop(tool_use_id)
-                perm_block._resolve(decision)
+                perm_block._resolve(perm_decision)
                 try:
                     select = self.query_one(PermissionSelect)
                     select.remove()

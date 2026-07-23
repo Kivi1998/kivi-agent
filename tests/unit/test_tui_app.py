@@ -69,8 +69,8 @@ def test_llm_block_resets_after_non_token_event() -> None:
     assert llm_blocks[0]._finalized  # type: ignore[attr-defined]
 
 
-# 功能：验证 run.started 事件追加 Static widget 且包含 run_id 和 goal
-# 设计：monkey-patch _append，断言追加的 widget 的 renderable 包含关键字段
+# 功能：验证 run.started 事件追加多个 widget 且包含 run_id 和 goal
+# 设计：monkey-patch _append；Wave 2 TUI 集成后追加 RoutePanel + BusinessEventWidget + run-header Static 共 3 个
 def test_run_started_appends_widget_with_content() -> None:
     app = KamaTuiApp("127.0.0.1", 9999)
     appended: list[Widget] = []
@@ -80,8 +80,10 @@ def test_run_started_appends_widget_with_content() -> None:
         "type": "run.started", "run_id": "run-abc", "goal": "do the thing", "ts": "t"
     })
 
-    assert len(appended) == 1
-    rendered = appended[0].content
+    # Wave 2 TUI 集成：RoutePanel + BusinessEventWidget + run-header Static
+    assert len(appended) == 3
+    # run-header Static 在末尾，含 run_id 和 goal
+    rendered = appended[-1].content
     assert "run-abc" in rendered
     assert "do the thing" in rendered
 
