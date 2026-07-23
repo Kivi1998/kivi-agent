@@ -19,7 +19,6 @@ from pathlib import Path
 import pytest
 
 from kivi_agent.eval.coding.models import (
-    CodingCase,
     CodingEvalResult,
     PatchRecord,
     TestRunRecord,
@@ -37,7 +36,6 @@ from kivi_agent.eval.metrics.coding import (
     tests_passed_rate,
     time_to_first_pass,
 )
-
 
 # ---------------------------------------------------------------------------
 # 工厂

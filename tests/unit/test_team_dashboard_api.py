@@ -288,8 +288,17 @@ def test_get_team_metrics_6_indicators(client: TestClient, patch_store: Any) -> 
         member_outcomes: list[Any] = []
         delegations: list[Any] = []
 
+    class _FakeMetricsReport:
+        """带 to_dict() 的包装，模拟 TeamMetricsReport。"""
+
+        def __init__(self, data: dict[str, Any]) -> None:
+            self._data = data
+
+        def to_dict(self) -> dict[str, Any]:
+            return self._data
+
     fake_team_models.TeamEvalResult = _FakeTeamEvalResult  # type: ignore[attr-defined]
-    fake_metrics_team.compute_team_metrics = lambda _r: fake_metrics  # type: ignore[attr-defined]
+    fake_metrics_team.compute_all_team_metrics = lambda _r: _FakeMetricsReport(fake_metrics)  # type: ignore[attr-defined]
 
     with patch.dict(
         sys.modules,

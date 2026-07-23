@@ -5,8 +5,6 @@
 """
 from __future__ import annotations
 
-import pytest
-
 from kivi_agent.eval.coding.diff_parser import Hunk, parse_unified_diff
 
 

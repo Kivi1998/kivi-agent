@@ -66,8 +66,8 @@ def _now_iso() -> str:
 _CODING_SYSTEM_PROMPT = (
     "You are an expert Python developer. "
     "Given a task description, a test file, and the current contents of a source file, "
-    "produce EITHER a unified diff (starting with '@@') OR the full new contents of the source file. "
-    "Do not include explanations. Output only the patch or the new file content."
+    "produce EITHER a unified diff (starting with '@@') OR the full new contents of the "
+    "source file. Do not include explanations. Output only the patch or the new file content."
 )
 
 
@@ -278,7 +278,7 @@ def _strip_code_fence(text: str) -> str:
 def _make_whole_file_diff(new_content: str) -> str:
     """生成新增整文件的 unified diff（old 为空）。"""
     new_lines = new_content.splitlines() or [""]
-    header = "@@ -0,0 +1,{} @@".format(len(new_lines))
+    header = f"@@ -0,0 +1,{len(new_lines)} @@"
     body = "\n".join("+" + ln for ln in new_lines)
     return f"{header}\n{body}\n"
 

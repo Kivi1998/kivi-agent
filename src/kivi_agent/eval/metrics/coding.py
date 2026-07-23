@@ -20,6 +20,9 @@ from datetime import UTC, datetime
 from kivi_agent.eval.coding.models import CodingEvalResult
 from kivi_agent.eval.metrics.report import MetricsReport
 
+# 显式标注：模块里的 test_growth_rate 别名或同名函数/变量不应被 pytest 收集
+__test__ = False
+
 
 # 1. 任务完成率：final_passed > 0 的 case 占比
 def task_completion_rate(results: list[CodingEvalResult]) -> dict[str, float | int]:
@@ -133,7 +136,7 @@ def compile_success_rate(results: list[CodingEvalResult]) -> dict[str, float | i
 
 
 # 8. 测试增长：tests_added / iterations
-def test_growth_rate(results: list[CodingEvalResult]) -> dict[str, float | int]:
+def growth_rate(results: list[CodingEvalResult]) -> dict[str, float | int]:
     """计算每轮新增测试数的平均（pytest collect 数量变化）。"""
     total_added = 0
     total_iters = 0
@@ -176,7 +179,7 @@ def compute_all_coding_metrics(
         "time_to_first_pass": time_to_first_pass(results),
         "self_recovery_rate": self_recovery_rate(results),
         "compile_success_rate": compile_success_rate(results),
-        "test_growth_rate": test_growth_rate(results),
+        "test_growth_rate": growth_rate(results),
     }
     return MetricsReport(
         dataset_name=dataset_name,

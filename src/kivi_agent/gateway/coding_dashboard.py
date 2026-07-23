@@ -235,7 +235,7 @@ def build_coding_dashboard_router() -> APIRouter:
     async def get_run_metrics(run_id: str) -> dict[str, Any]:
         """Coding run 的 T12 8 指标（agent: package-dashboard-api-v52）。
 
-        懒导入 H2 的 `compute_coding_metrics`；H2 未合并时返回 501。
+        懒导入 H2 的 `compute_all_coding_metrics`；H2 未合并时返回 501。
         返回 8 指标：task_completion_rate / tests_passed_rate / patch_quality /
         iteration_count / time_to_first_pass / self_recovery_rate / compile_success_rate /
         test_growth_rate。
@@ -250,12 +250,8 @@ def build_coding_dashboard_router() -> APIRouter:
             )
         # 懒导入：依赖 H2 (CodingEvalResult) + H2 metrics.coding
         try:
-            from kivi_agent.eval.coding.models import (  # type: ignore[import-not-found]
-                CodingEvalResult,
-            )
-            from kivi_agent.eval.metrics.coding import (  # type: ignore[import-not-found]
-                compute_coding_metrics,
-            )
+            from kivi_agent.eval.coding.models import CodingEvalResult
+            from kivi_agent.eval.metrics.coding import compute_all_coding_metrics
         except ImportError as exc:
             raise HTTPException(
                 status_code=status.HTTP_501_NOT_IMPLEMENTED,
@@ -263,8 +259,8 @@ def build_coding_dashboard_router() -> APIRouter:
             ) from exc
         coding_results = [CodingEvalResult.model_validate(r) for r in results]
         latest = max(coding_results, key=lambda r: r.started_at or "")
-        result_dict: dict[str, Any] = compute_coding_metrics(latest)
-        return result_dict
+        report = compute_all_coding_metrics([latest])
+        return report.to_dict()
 
     return router
 

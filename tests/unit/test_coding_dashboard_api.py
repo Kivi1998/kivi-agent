@@ -283,8 +283,17 @@ def test_get_run_metrics_8_indicators(client: TestClient, patch_store: Any) -> N
         finished_at: str | None = None
         completed: bool = False
 
+    class _FakeMetricsReport:
+        """带 to_dict() 的包装，模拟 MetricsReport。"""
+
+        def __init__(self, data: dict[str, Any]) -> None:
+            self._data = data
+
+        def to_dict(self) -> dict[str, Any]:
+            return self._data
+
     fake_coding_models.CodingEvalResult = _FakeCodingEvalResult  # type: ignore[attr-defined]
-    fake_metrics_coding.compute_coding_metrics = lambda _r: fake_metrics  # type: ignore[attr-defined]
+    fake_metrics_coding.compute_all_coding_metrics = lambda _r: _FakeMetricsReport(fake_metrics)  # type: ignore[attr-defined]
 
     with patch.dict(
         sys.modules,

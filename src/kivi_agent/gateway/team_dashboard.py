@@ -243,7 +243,7 @@ def build_team_dashboard_router() -> APIRouter:
     async def get_team_metrics(team_id: str) -> dict[str, Any]:
         """Team 的 T11 6 指标（agent: package-dashboard-api-v52）。
 
-        懒导入 H1 的 `compute_team_metrics`；H1 未合并时返回 501。
+        懒导入 H1 的 `compute_all_team_metrics`；H1 未合并时返回 501。
         返回 6 指标：team_success_rate / delegation_accuracy / handoff_quality /
         coordination_latency / agent_utilization / role_consistency。
         """
@@ -257,10 +257,8 @@ def build_team_dashboard_router() -> APIRouter:
             )
         # 懒导入：依赖 H1 (TeamEvalResult) + H1 metrics.team
         try:
-            from kivi_agent.eval.metrics.team import (  # type: ignore[import-not-found]
-                compute_team_metrics,
-            )
-            from kivi_agent.eval.team.models import TeamEvalResult  # type: ignore[import-not-found]
+            from kivi_agent.eval.metrics.team import compute_all_team_metrics
+            from kivi_agent.eval.team.models import TeamEvalResult
         except ImportError as exc:
             raise HTTPException(
                 status_code=status.HTTP_501_NOT_IMPLEMENTED,
@@ -269,8 +267,8 @@ def build_team_dashboard_router() -> APIRouter:
         team_results = [TeamEvalResult.model_validate(r) for r in results]
         # 取最新一行作为主结果（一个 team 通常对应一条结果）
         latest = max(team_results, key=lambda r: r.started_at or "")
-        result_dict: dict[str, Any] = compute_team_metrics(latest)
-        return result_dict
+        report = compute_all_team_metrics([latest])
+        return report.to_dict()
 
     return router
 
