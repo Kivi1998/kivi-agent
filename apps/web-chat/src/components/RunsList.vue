@@ -100,11 +100,19 @@ function onRowClick(runId: string): void {
           class="runs-row"
           @click="onRowClick(run.run_id)"
         >
-          <td class="run-id">{{ run.run_id }}</td>
+          <td class="run-id">
+            {{ run.run_id }}
+          </td>
           <td>{{ formatTime(run.started_at) }}</td>
-          <td class="num">{{ run.case_count }}</td>
-          <td class="num">{{ run.success_count }}</td>
-          <td class="num rate">{{ rateStr(run) }}</td>
+          <td class="num">
+            {{ run.case_count }}
+          </td>
+          <td class="num">
+            {{ run.success_count }}
+          </td>
+          <td class="num rate">
+            {{ rateStr(run) }}
+          </td>
         </tr>
       </tbody>
     </table>

@@ -97,15 +97,23 @@ function onRowClick(caseId: string): void {
           class="case-row"
           @click="onRowClick(c.case_id)"
         >
-          <td class="case-id">{{ c.case_id }}</td>
+          <td class="case-id">
+            {{ c.case_id }}
+          </td>
           <td>
             <span :class="['badge', c.success ? 'badge-ok' : 'badge-fail']">
               {{ c.success ? '✓' : '✗' }}
             </span>
           </td>
-          <td class="num">{{ toolCount(c) }}</td>
-          <td class="num">{{ sourcesCount(c) }}</td>
-          <td class="answer">{{ answerSummary(c) || '(无)' }}</td>
+          <td class="num">
+            {{ toolCount(c) }}
+          </td>
+          <td class="num">
+            {{ sourcesCount(c) }}
+          </td>
+          <td class="answer">
+            {{ answerSummary(c) || '(无)' }}
+          </td>
         </tr>
       </tbody>
     </table>
