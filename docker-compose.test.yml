@@ -1,0 +1,29 @@
+# kivi-agent Wave 4 测试用 Postgres（agent: package-e2e-real-v4）
+#
+# 启动：docker-compose -f docker-compose.test.yml up -d
+# 停止：docker-compose -f docker-compose.test.yml down
+#
+# 端口：5432（与默认 Postgres 端口一致；如本机已有 Postgres，停掉它或改 ports 映射）
+# 凭据：kivi_test / kivi_test / kivi_test（与 tests/sql/init.sql 种子数据配套）
+#
+# 健康检查：pg_isready 每 5s 探一次，最多 5 次失败后标 unhealthy
+# 数据卷：不挂载（E2E 用完即弃；下次 docker-compose up 重新初始化）
+
+services:
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: kivi-agent-pg-test
+    environment:
+      POSTGRES_USER: kivi_test
+      POSTGRES_PASSWORD: kivi_test
+      POSTGRES_DB: kivi_test
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./tests/sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kivi_test -d kivi_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: "no"  # 测试服务，不要自动重启
