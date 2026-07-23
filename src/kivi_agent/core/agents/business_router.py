@@ -25,7 +25,7 @@ _INTENT_REQUIRED_TOOLS: dict[str, frozenset[str]] = {
     "rag": frozenset({"rag_query"}),
     "web_search": frozenset({"web_search"}),
     "database": frozenset({"query_database"}),
-    "frontend_tool": frozenset({"web_search", "map_load"}),  # frontend_tool 走 web_search + map_load
+    "frontend_tool": frozenset({"web_search", "map_load"}),  # demo4 用
     "general": frozenset(),  # general 只需基础工具，不强制业务 Tool
     "synthesizer": frozenset(),  # synthesizer 只需基础工具，不强制业务 Tool
 }

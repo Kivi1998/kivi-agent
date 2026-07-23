@@ -130,7 +130,8 @@ class MapLoadParams(BaseModel):
     layer_id: str = "default"
 
 
-# 演示版 frontend_map Tool：拉公开 GeoJSON + 算 bbox + 推 `map.geojson_loaded` 事件（agent: package-demo-v7）
+# 演示版 frontend_map Tool（agent: package-demo-v7）：
+# 拉公开 GeoJSON + 算 bbox + 推 `map.geojson_loaded` 事件
 class MapLoadTool(BaseTool):
     """map_load Tool：拉取公开 GeoJSON，解析 features + bbox，推 map.geojson_loaded 事件。
 
@@ -144,9 +145,10 @@ class MapLoadTool(BaseTool):
     category = "read"  # 只读 GET，无写
     description = (
         "Load a public GeoJSON URL into the frontend map. "
-        "Returns the number of features loaded and the bounding box [min_lon, min_lat, max_lon, max_lat]. "
-        "Emits a 'map.geojson_loaded' event so the MapView component can render the layer. "
-        "Only http(s) public URLs are allowed; private/loopback hosts are blocked."
+        "Returns the feature count and bounding box "
+        "[min_lon, min_lat, max_lon, max_lat]. "
+        "Emits 'map.geojson_loaded' so MapView can render. "
+        "Only http(s) public URLs allowed; private/loopback blocked."
     )
     input_schema: dict[str, object] = {
         "type": "object",
@@ -260,7 +262,9 @@ async def _httpx_fetch(url: str) -> dict[str, Any]:
     async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
         resp = await client.get(url)
         resp.raise_for_status()
-        return resp.json()
+        data = resp.json()
+    # 防御：httpx 返回 Any；强转为 dict[str, Any] 避免 mypy no-any-return
+    return data if isinstance(data, dict) else {"_raw": data}
 
 
 # 构造 `map.geojson_loaded` 事件（agent: package-demo-v7）

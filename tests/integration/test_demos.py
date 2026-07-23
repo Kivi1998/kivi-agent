@@ -15,8 +15,7 @@ import asyncio
 import os
 
 import pytest
-
-from demos.base import DemoBase, aggregate_reports
+from demos.base import DemoBase, DemoResult, aggregate_reports
 from demos.demo1_coding import Demo1Coding
 from demos.demo2_rag import Demo2Rag
 from demos.demo3_database import Demo3Database
@@ -31,7 +30,7 @@ pytestmark = pytest.mark.skipif(
 
 
 # 工具：异步跑一个 demo 类，返回 DemoResult
-async def _run_demo(cls: type[DemoBase]) -> "DemoResult":  # type: ignore[name-defined]  # noqa: F821
+async def _run_demo(cls: type[DemoBase]) -> DemoResult:
     """异步跑一次 demo 类；返回 DemoResult。"""
     async with cls() as demo:
         return await demo.execute()
@@ -119,7 +118,7 @@ async def test_demo_base_handles_exception() -> None:
         name = "boom_demo"
         description = "故意抛异常的 demo（用于测兜底）"
 
-        async def run(self) -> "DemoResult":  # type: ignore[name-defined]  # noqa: F821
+        async def run(self) -> DemoResult:
             raise RuntimeError("boom")
 
     result = await _run_demo(BoomDemo)
