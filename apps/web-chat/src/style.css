@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 业务组件 CSS 变量（WT-E3 贡献） */
+:root {
+  --route-panel-color: #06b6d4;
+  --citation-color: #06b6d4;
+  --chart-color: #d946ef;
+  --muted-color: #6b7280;
+  --border-radius: 8px;
+  --panel-padding: 12px 14px;
+}
+
+/* 全局暗色主题（与 TUI 一致） */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  background-color: #0a0e14;
+  color: #c9d1d9;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+}
+
+/* 滚动条暗色化 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #11151c;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e242e;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2a313c;
+}

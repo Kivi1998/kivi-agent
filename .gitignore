@@ -18,3 +18,9 @@ uv.lock
 workspace/
 !core/workspace/
 !core/workspace/**
+
+# Frontend (apps/web-chat) — Wave 3 added
+node_modules/
+package-lock.json
+apps/web-chat/dist/
+apps/web-chat/.vite/
