@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import re
 
-import pytest
-
 from kivi_agent.core.memory.filter import (
     _AUTH_HEADER_RE,
     _EMAIL_RE,

@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import Literal
 
-# 记忆类型：user 个人偏好 / feedback 反馈 / project 项目事实 / reference 参考资料 / task 任务上下文。
+# 记忆类型：user 个人偏好 / feedback 反馈 / project 项目事实 /
+# reference 参考资料 / task 任务上下文。
 MemoryType = Literal["user", "feedback", "project", "reference", "task"]
 
 # 记忆状态：active 生效中 / pending 待确认 / archived 已归档 / expired 已过期。

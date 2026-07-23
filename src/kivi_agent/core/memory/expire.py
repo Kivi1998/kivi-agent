@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import replace
-from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Callable, Literal
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Literal
 
 from kivi_agent.core.memory.backend import MemoryAuditEvent, MemoryItem
 
@@ -18,7 +19,7 @@ StatusResult = Literal["active", "expired"]
 
 def _now_iso() -> str:
     """当前 UTC ISO 8601 时间字符串。"""
-    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
 
 
 def _parse_iso(ts: str) -> datetime | None:
@@ -35,7 +36,7 @@ def _parse_iso(ts: str) -> datetime | None:
         return None
     # 朴素的 timezone 处理：若 dt 无 tzinfo 则视为 UTC
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
+        dt = dt.replace(tzinfo=UTC)
     return dt
 
 
@@ -44,7 +45,7 @@ class MemoryExpiryPolicy:
 
     def __init__(self, now_fn: Callable[[], datetime] | None = None) -> None:
         # 注入式 now_fn 便于单测控制时间
-        self._now_fn: Callable[[], datetime] = now_fn or (lambda: datetime.now(timezone.utc))
+        self._now_fn: Callable[[], datetime] = now_fn or (lambda: datetime.now(UTC))
 
     # 判定单条记忆是否过期。expires_at=None 视为永久 → active。
     def check(self, memory: MemoryItem) -> StatusResult:
@@ -58,20 +59,21 @@ class MemoryExpiryPolicy:
         return "active" if now <= exp else "expired"
 
     # 把过期记忆在 backend 上 archive（status=archived）；返回处理条数。
-    # backend 需实现 list_all / update / audit；list_all 由实现可选提供（J2 增强在 LocalMemoryBackend 加）。
+    # backend 需实现 list_all / update / audit；list_all 由实现可选提供
+    # （J2 增强在 LocalMemoryBackend 加）。
     async def archive_expired(
         self,
-        backend: "MemoryBackend",
-        audit_logger: "MemoryAuditLogger | None" = None,
+        backend: MemoryBackend,
+        audit_logger: MemoryAuditLogger | None = None,
     ) -> int:
         listed: list[MemoryItem] = []
         list_all = getattr(backend, "list_all", None)
         if callable(list_all):
             res = list_all()
             if hasattr(res, "__await__"):
-                listed = list(await res)  # type: ignore[arg-type]
+                listed = list(await res)
             else:
-                listed = list(res)  # type: ignore[arg-type]
+                listed = list(res)
         else:
             # 兜底：search "*" 在多数实现会返回全量；空 query 兜底返回 []
             listed = await backend.search("*", top_k=10000)

@@ -121,8 +121,8 @@ def test_dedup_threshold_boundary_exact_not_merged() -> None:
     # 构造两个 cosine 恰好等于 0.95 的向量
     a = [0.95, 0.3122]  # norm_a = sqrt(0.9025 + 0.0975) ≈ 1.0
     b = [1.0, 0.0]  # norm_b = 1.0
-    # dot = 0.95；norm_a ≈ 1.0 → cosine ≈ 0.95
-    score = cosine_similarity(a, b)
+    # 校验首版构造的 cosine 接近 0.95
+    assert math.isclose(cosine_similarity(a, b), 0.95, abs_tol=0.01)
     # 调整到精确 0.95：让 norm_a = 1
     a = [0.95, math.sqrt(1 - 0.95 ** 2)]
     b = [1.0, 0.0]

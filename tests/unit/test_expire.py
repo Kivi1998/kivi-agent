@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -25,7 +25,7 @@ def test_check_none_expires_at_is_active() -> None:
 # 功能：check 在 expires_at 未来时间时返回 active
 # 设计：未来过期 → 仍 active
 def test_check_future_expires_at_is_active() -> None:
-    future = (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
+    future = (datetime.now(UTC) + timedelta(days=7)).isoformat()
     policy = MemoryExpiryPolicy()
     m = MemoryItem(
         id="m-1", content="x", memory_type="user", importance=0.5,
@@ -37,7 +37,7 @@ def test_check_future_expires_at_is_active() -> None:
 # 功能：check 在 expires_at 已过时返回 expired
 # 设计：注入 now_fn 固定为 2026-06-01，构造 expires_at=2026-01-01 → expired
 def test_check_past_expires_at_is_expired() -> None:
-    fixed = datetime(2026, 6, 1, tzinfo=timezone.utc)
+    fixed = datetime(2026, 6, 1, tzinfo=UTC)
     policy = MemoryExpiryPolicy(now_fn=lambda: fixed)
     m = MemoryItem(
         id="m-1", content="x", memory_type="user", importance=0.5,

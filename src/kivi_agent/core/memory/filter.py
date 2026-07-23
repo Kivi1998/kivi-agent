@@ -14,9 +14,11 @@ class FilteredResult(TypedDict):
     warnings: list[str]  # 命中类型描述列表。
 
 
-# 密码 / API key / token / secret / private_key 形如 key=value 或 key: value，value 至少 1 个非空白字符。
+# 密码 / API key / token / secret / private_key 形如 key=value 或 key: value，
+# value 至少 1 个非空白字符。
 # group(1) = key 名称；group(2) = 整体匹配（key+分隔+value）。
-# value 类允许常见 base64 / hex / PEM 字符（含 - _ / = + . ），不含空白与常见语句终止符；
+# value 类允许常见 base64 / hex / PEM 字符（含 - _ / = + . ），
+# 不含空白与常见语句终止符；
 # 引号本身不排除，因为值常被 "" 或 '' 包裹。
 _SENSITIVE_KV_RE = re.compile(
     r"(?i)(\b(?:password|api_key|apikey|token|secret|private_key|passwd|pwd)\b)"

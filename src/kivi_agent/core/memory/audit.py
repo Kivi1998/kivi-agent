@@ -6,7 +6,7 @@ import json
 import os
 import threading
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from kivi_agent.core.memory.backend import MemoryAuditEvent
@@ -98,7 +98,7 @@ class MemoryAuditLogger:
         self.append(MemoryAuditEvent(
             memory_id=memory_id,
             event_type="create",
-            ts=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            ts=datetime.now(UTC).isoformat().replace("+00:00", "Z"),
             actor=actor,
         ))
 

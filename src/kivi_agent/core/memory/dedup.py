@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, TypedDict
+from typing import TypedDict
 
 from kivi_agent.core.memory.backend import MemoryItem
-
 
 # 单条记忆的 embedding 维度需在调用 embedding_fn 时保持一致；由 embedding_fn 实现保证。
 EmbeddingFn = Callable[[str], list[float]]
