@@ -28,6 +28,8 @@ def _now_iso() -> str:
 class PatchRecord(BaseModel):
     """单轮 patch 记录。"""
 
+    # 防止 pytest 误把本类当测试类收集（命名以 Patch 开头即可，但为安全显式标注）
+    __test__ = False
     model_config = ConfigDict(extra="ignore")
 
     iter: int
@@ -40,6 +42,8 @@ class PatchRecord(BaseModel):
 class TestRunRecord(BaseModel):
     """单轮 pytest 记录。"""
 
+    # 显式标注非测试类（类名以 Test 开头会被 pytest 默认尝试收集）
+    __test__ = False
     model_config = ConfigDict(extra="ignore")
 
     iter: int
