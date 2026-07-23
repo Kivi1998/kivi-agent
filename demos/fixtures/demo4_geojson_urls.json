@@ -1,0 +1,9 @@
+{
+  "description": "Demo 4 fixture: 3 个公开 GeoJSON URL（agent: package-demo-v7）",
+  "task": "找最近的 3 个公园",
+  "urls": [
+    "https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson",
+    "https://raw.githubusercontent.com/python-visualization/folium/main/tests/us-states.json",
+    "https://raw.githubusercontent.com/jupyter-widgets/ipyleaflet/main/examples/data/countries.geojson"
+  ]
+}
