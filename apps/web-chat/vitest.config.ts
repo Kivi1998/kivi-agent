@@ -14,6 +14,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
+    setupFiles: ['./src/test-setup.ts'],
     include: ['src/**/*.{spec,test}.{ts,tsx}'],
     exclude: ['node_modules', 'dist'],
     // ECharts 在 jsdom 下渲染开销大；测试只验证 option 透传，不真实画图

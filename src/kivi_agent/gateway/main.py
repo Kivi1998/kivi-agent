@@ -468,6 +468,11 @@ def _register_routes(app: FastAPI) -> None:
             result_dict = {}
         return SendCommandResponse(session_id=session_id, result=result_dict)
 
+    # Wave 5.1 Eval Dashboard（agent: package-dashboard-api-v51）
+    from kivi_agent.gateway.dashboard import build_dashboard_router
+
+    app.include_router(build_dashboard_router())
+
     @app.websocket("/sessions/{session_id}/ws")
     async def session_events_ws(
         session_id: str,
