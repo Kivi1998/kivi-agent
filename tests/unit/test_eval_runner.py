@@ -1,5 +1,6 @@
 """EvalRunner / Judge 单元测试（agent: package-eval-dataset-v51）。
 
+# test_eval_runner.py（agent: package-eval-dataset-v51）
 覆盖 4 个核心场景：
 1. run_case 返回填充好 route_decision + tool_calls + final_answer 的 EvalResult
 2. run_dataset 并发跑：结果数 == cases 数 + 顺序保持
@@ -11,6 +12,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -112,32 +114,39 @@ def test_judge_case_keyword_overlap_scoring() -> None:
     assert "missing" in reason
 
 
-# 功能：验证路由决策兜底（空 goal 不崩溃）+ 错误 case 仍写 run.finished
-# 设计：空 goal → BusinessRouter.route 兜底 general（不抛）；
-#       case 加 difficulty="hard" + 大量 tools → 跑通 success=True
-#       （execute_case mock 永不抛，验证 happy path）
-async def test_run_case_handles_edge_cases_gracefully() -> None:
-    runner = EvalRunner(concurrency=1)
+# 功能：验证单 case 执行异常会转成失败结果且不阻塞其他 case
+# 设计：patch runner.execute_case 仅让 id="bad" 抛错，其余 case 调用原执行器；
+#       断言 gather 返回顺序不变、失败 case 带 error + run.finished，成功 case 不受影响
+async def test_run_dataset_isolates_case_execution_failure(tmp_path: Path) -> None:
+    p = _write_dataset(tmp_path, [
+        {"id": "ok-1", "goal": "test one"},
+        {"id": "bad", "goal": "test bad"},
+        {"id": "ok-2", "goal": "test two"},
+    ])
+    ds = EvalDataset.load(p)
+    runner = EvalRunner(concurrency=2)
 
-    # 空 goal → 路由兜底 general；execute_case 因 expected_tools=[] 仍能跑通
-    case_empty = EvalCase(id="e", goal="", expected_tools=[], expected_answer=None)
-    result_empty = await runner.run_case(case_empty)
-    assert result_empty.success is True
-    assert result_empty.route_decision is not None
-    assert result_empty.route_decision["intent"] == "general"
+    from kivi_agent.eval.runner_executor import execute_case as real_execute_case
 
-    # 复杂 case（多 tool + 多 source + expected_answer）→ 全部填充
-    case_complex = EvalCase(
-        id="x",
-        goal="统计 7 月订单数（数据库），并查年假政策（知识库）",
-        expected_route="database",
-        expected_tools=["query_database", "rag_query"],
-        expected_sources=["kb-policy-001"],
-        expected_answer="七月订单 1234 单",
-        difficulty="hard",
-    )
-    result_complex = await runner.run_case(case_complex)
-    assert result_complex.success is True
-    assert len(result_complex.tool_calls) == 2
-    assert len(result_complex.rag_sources) == 1
-    assert result_complex.final_answer == "七月订单 1234 单"
+    async def _execute_with_failure(
+        case: EvalCase,
+        result: EvalResult,
+        pricing: dict[str, tuple[float, float]],
+    ) -> None:
+        if case.id == "bad":
+            raise RuntimeError("synthetic execution failure")
+        await real_execute_case(case, result, pricing)
+
+    with patch(
+        "kivi_agent.eval.runner.execute_case",
+        new=AsyncMock(side_effect=_execute_with_failure),
+    ):
+        results = await runner.run_dataset(ds)
+
+    assert [r.case_id for r in results] == ["ok-1", "bad", "ok-2"]
+    assert [r.success for r in results] == [True, False, True]
+    failed = results[1]
+    assert failed.error == "synthetic execution failure"
+    assert failed.finished_at is not None
+    assert failed.events[-1].type == "run.finished"
+    assert failed.events[-1].data["success"] is False

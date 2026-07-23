@@ -1,5 +1,6 @@
 """EvalCase / EvalDataset 单元测试（agent: package-eval-dataset-v51）。
 
+# test_eval_dataset.py（agent: package-eval-dataset-v51）
 覆盖 4 个核心场景：
 1. 加载有效 JSONL → 成功解析 + 字段完整
 2. 加载无效 JSON → ValueError（含行号）

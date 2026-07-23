@@ -1,5 +1,6 @@
 """case 执行器（agent: package-eval-dataset-v51）。
 
+# runner_executor.py（agent: package-eval-dataset-v51）
 模拟 AgentRuntime 行为：按路由决策触发对应业务 Tool，收集事件 + token。
 完整 AgentRuntime 集成（core/runner.AgentRunner.run_and_capture）留 WT-G3 集成期。
 """

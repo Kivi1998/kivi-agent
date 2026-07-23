@@ -1,5 +1,6 @@
 """评测结果（agent: package-eval-dataset-v51）。
 
+# result.py（agent: package-eval-dataset-v51）
 单 case 跑完后的全量信息：路由决策、工具调用、引用、事件流、token、Judge 评分。
 - EvalResult：case 顶层结果
 - ToolCallRecord：单次 tool 调用记录

@@ -1,5 +1,6 @@
 """EvalRunner 集成测试（agent: package-eval-dataset-v51）。
 
+# test_eval_run.py（agent: package-eval-dataset-v51）
 3 场景：
 1. 10 case 数据集全跑通（含 5 种业务 Profile 路由）
 2. 1 case 失败不阻塞其他 case（即使 WT-G3 切真实后有失败，整体并发仍完成）
@@ -12,8 +13,10 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from unittest.mock import AsyncMock, patch
 
-from kivi_agent.eval.dataset import EvalDataset
+from kivi_agent.eval.dataset import EvalCase, EvalDataset
+from kivi_agent.eval.result import EvalResult
 from kivi_agent.eval.runner import EvalRunner
 
 # 10 case 测试数据集：覆盖 5 种业务 Profile（agent: package-eval-dataset-v51）
@@ -84,28 +87,39 @@ async def test_ten_case_dataset_runs_end_to_end(tmp_path: Path) -> None:
     assert "general" in intents
 
 
-# 功能：验证 1 case 失败时其他 case 仍能完成（隔离性）
-# 设计：构造 dataset 含 1 个 case 携带"不在 6 业务 Tool 名"之外的特殊 tool 名
-#       （注：当前 Literal 校验在 pydantic 层会拒绝——故改为：1 个 case 触发
-#       expected_tools=[] 空列表导致 rag_sources 也空，但其他 case 正常）
-# 实际验证：当 case 故意构造得极简（无 tools / 无 sources）也能 success=True
+# 功能：验证单 case 执行失败会持久化为失败结果且不阻塞其他 case
+# 设计：patch execute_case 仅让 edge-1 抛 RuntimeError，其他 10 case 调真实 mock executor；
+#       断言整批 11 个结果均返回，其中 10 成功、1 失败并保留错误消息
 async def test_one_failing_case_does_not_block_others(tmp_path: Path) -> None:
     p = _write_demo_dataset(tmp_path / "mixed.jsonl")
-    # 在文件末尾追加 1 个极简 case（无 expected_tools / 无 expected_answer）
     with open(p, "a", encoding="utf-8") as f:
         f.write(json.dumps({"id": "edge-1", "goal": "ping"}) + "\n")
 
     ds = EvalDataset.load(p)
     runner = EvalRunner(concurrency=2)
-    results = await runner.run_dataset(ds)
+    from kivi_agent.eval.runner_executor import execute_case as real_execute_case
 
-    # 全部 11 个 case 跑完
+    async def _execute_with_failure(
+        case: EvalCase,
+        result: EvalResult,
+        pricing: dict[str, tuple[float, float]],
+    ) -> None:
+        if case.id == "edge-1":
+            raise RuntimeError("synthetic integration failure")
+        await real_execute_case(case, result, pricing)
+
+    with patch(
+        "kivi_agent.eval.runner.execute_case",
+        new=AsyncMock(side_effect=_execute_with_failure),
+    ):
+        results = await runner.run_dataset(ds)
+
     assert len(results) == 11
-    # 极简 case 仍然 success=True（executor 永不抛）
+    assert sum(1 for r in results if r.success) == 10
     edge_result = next(r for r in results if r.case_id == "edge-1")
-    assert edge_result.success is True
-    # 其他 10 个 case 不受影响
-    assert sum(1 for r in results if r.success) == 11
+    assert edge_result.success is False
+    assert edge_result.error == "synthetic integration failure"
+    assert edge_result.events[-1].type == "run.finished"
 
 
 # 功能：验证 CLI run 写 JSONL → CLI summary 读 JSONL 打印通过率

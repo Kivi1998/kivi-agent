@@ -1,5 +1,6 @@
 """kivi-eval CLI（agent: package-eval-dataset-v51）。
 
+# eval.py（agent: package-eval-dataset-v51）
 WT-G1 CLI：批量跑评测 + 汇总结果。
 - run: 加载 JSONL 数据集 → 批量跑 EvalRunner → 写 JSONL 结果
 - summary: 读 JSONL 结果 → 打印成功/总数 + 通过率

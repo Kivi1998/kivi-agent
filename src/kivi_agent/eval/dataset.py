@@ -1,5 +1,6 @@
 """评测数据集（agent: package-eval-dataset-v51）。
 
+# dataset.py（agent: package-eval-dataset-v51）
 JSONL 格式：每行一个 EvalCase。
 - 字段冻结（v1 契约内）：id / goal / expected_route / expected_tools /
   expected_sources / expected_answer / difficulty / tags / notes

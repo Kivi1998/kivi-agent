@@ -1,5 +1,6 @@
 """批量评测运行器（agent: package-eval-dataset-v51）。
 
+# runner.py（agent: package-eval-dataset-v51）
 复用 Wave 1 既有 AgentRuntime + BusinessRouter + 6 业务 Tool。
 Wave 4 真实服务 Adapter 透明接入（Mock 默认；RAG_MODE=http / DB_MODE=sqlite 自动启用）。
 
@@ -15,6 +16,7 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
+from datetime import UTC, datetime
 
 from kivi_agent.core.agents.business_router import BusinessRouter
 from kivi_agent.eval.dataset import EvalCase, EvalDataset
@@ -39,6 +41,7 @@ class EvalRunner:
         token_pricing: 模型 token 单价表；用于 WT-G3 真实成本计算
     """
 
+    # 初始化路由器、并发上限与价格表
     def __init__(
         self,
         *,
@@ -88,12 +91,31 @@ class EvalRunner:
     async def run_dataset(self, dataset: EvalDataset) -> list[EvalResult]:
         """并发跑整个数据集（asyncio.Semaphore 控制）。
 
-        返回与 dataset.cases 等长的结果列表（顺序保持）。
+        返回与 dataset.cases 等长的结果列表（顺序保持）；单 case 异常会转成
+        success=False 的 EvalResult，避免一个坏 case 中断整批评测。
         """
         sem = asyncio.Semaphore(self._concurrency)
 
+        # 并发执行单个 case，并把异常转换为失败结果
         async def _run_with_sem(case: EvalCase) -> EvalResult:
             async with sem:
-                return await self.run_case(case)
+                try:
+                    return await self.run_case(case)
+                except Exception as exc:  # noqa: BLE001
+                    now = datetime.now(UTC).isoformat()
+                    return EvalResult(
+                        case_id=case.id,
+                        run_id=f"eval-{uuid.uuid4().hex[:8]}",
+                        finished_at=now,
+                        success=False,
+                        error=str(exc),
+                        events=[
+                            CaseEvent(
+                                type="run.finished",
+                                ts=now,
+                                data={"success": False, "error": str(exc)},
+                            )
+                        ],
+                    )
 
         return list(await asyncio.gather(*[_run_with_sem(c) for c in dataset.cases]))

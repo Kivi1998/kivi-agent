@@ -1,5 +1,6 @@
 """Judge 集成（agent: package-eval-dataset-v51）。
 
+# judge.py（agent: package-eval-dataset-v51）
 复用 Wave 1 E 包的 Judge 修复版（必填 expected_answer + reference_context）。
 本模块提供**离线降级版**（关键词重叠度），用于本地无 LLM 场景跑通端到端通路。
 WT-G3 集成期：切到 `kivi_agent.evaluation.Judge`（LLM-as-judge），

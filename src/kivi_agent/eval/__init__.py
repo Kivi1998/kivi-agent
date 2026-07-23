@@ -1,5 +1,6 @@
 """kivi-agent 评测数据集（agent: package-eval-dataset-v51）。
 
+# __init__.py（agent: package-eval-dataset-v51）
 Wave 5.1 WT-G1：评测数据集 schema + 批量运行 CLI + Judge 集成。
 
 - EvalCase / EvalDataset：JSONL 数据集（line 1 = 1 case）
