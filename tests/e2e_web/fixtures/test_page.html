@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<!--
+  WT-E5 Test Page Stub (agent: package-web-e2e-v3)
+
+  目的：在 apps/web-chat/ (WT-E2 范围) 合并前，提供一个满足 data-testid 契约的最小测试页。
+  真实 Vue 组件（RoutePanel / CitationWidget / ChartWidget / CancelButton / 等）合并后，
+  Playwright 测试不需要修改，只改 baseURL/webServer 配置即可指向真前端。
+
+  契约（data-testid）：
+  - new-session-button            顶部"新建会话"按钮
+  - session-goal-input            目标输入框（placeholder="输入目标..."）
+  - send-button                   "发送" 按钮
+  - cancel-button                 "停止" 按钮（运行中可见）
+  - connection-status             连接状态指示器（data-state="connected|reconnecting|closed"）
+  - reconnecting-status           重连中提示
+  - route-panel                   路由决策面板（多意图时显示多个）
+  - citation-widget               引用列表
+  - chart-widget                  图表 widget
+  - cancelled-banner              RunCancelled 横幅
+  - input-disabled-marker         输入框被禁用时由脚本加的标记
+
+  API 契约（与 FastAPI Gateway 对齐）：
+  - POST   /sessions                          → 创建 session
+  - GET    /sessions?user_id=...              → 列出 session
+  - POST   /sessions/{id}/cancel              → 取消
+  - POST   /sessions/{id}/commands            → 通用命令
+  - WS     /sessions/{id}/ws                  → 事件流
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>kivi-agent Test Page (WT-E5)</title>
+  <meta name="viewport" content="width=1280, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0e1116;
+      --panel: #1a1f2b;
+      --border: #2a3142;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #58a6ff;
+      --warn: #d29922;
+      --danger: #f85149;
+      --ok: #3fb950;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    #app { display: grid; grid-template-columns: 280px 1fr; height: 100vh; }
+
+    /* ---- 侧边栏 ---- */
+    #sidebar {
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      padding: 16px;
+      overflow-y: auto;
+    }
+    #sidebar h2 { font-size: 14px; color: var(--muted); margin-bottom: 12px; font-weight: 500; }
+    #new-session-button {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    #new-session-button:hover { filter: brightness(1.1); }
+    .session-item {
+      padding: 8px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 4px;
+      word-break: break-all;
+    }
+    .session-item:hover { background: #21262d; color: var(--text); }
+    .session-item.active { background: #1f6feb33; color: var(--text); }
+
+    /* ---- 主区 ---- */
+    #main { display: flex; flex-direction: column; }
+    #header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    #header h1 { font-size: 16px; font-weight: 500; }
+    #connection-status {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      background: #21262d;
+    }
+    #connection-status[data-state="connected"] { color: var(--ok); }
+    #connection-status[data-state="reconnecting"] { color: var(--warn); }
+    #connection-status[data-state="closed"] { color: var(--danger); }
+
+    #reconnecting-status {
+      display: none;
+      background: #d2992222;
+      border-bottom: 1px solid var(--warn);
+      color: var(--warn);
+      padding: 8px 16px;
+      font-size: 13px;
+    }
+    #reconnecting-status.show { display: block; }
+
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+    .empty-state { color: var(--muted); text-align: center; margin-top: 80px; font-size: 14px; }
+
+    /* ---- Route Panel ---- */
+    .route-panel {
+      background: #1f2937;
+      border: 1px solid #06b6d4;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 12px 0;
+      max-width: 720px;
+    }
+    .route-panel h3 {
+      font-size: 13px;
+      color: #06b6d4;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .route-panel .badge {
+      background: #06b6d422;
+      color: #06b6d4;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      text-transform: uppercase;
+    }
+    .route-panel .profiles { display: flex; gap: 6px; flex-wrap: wrap; }
+    .route-panel .profile-tag {
+      background: #06b6d422;
+      color: #67e8f9;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .route-panel .meta { color: var(--muted); font-size: 12px; margin-top: 6px; }
+
+    /* ---- Citation ---- */
+    .citation-widget {
+      background: #1f2937;
+      border: 1px solid #facc15;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 12px 0;
+      max-width: 720px;
+    }
+    .citation-widget h3 {
+      font-size: 13px;
+      color: #facc15;
+      margin-bottom: 8px;
+    }
+    .citation-list { list-style: none; }
+    .citation-list li {
+      padding: 6px 0;
+      border-bottom: 1px dashed #2a3142;
+      font-size: 13px;
+    }
+    .citation-list li:last-child { border-bottom: none; }
+    .citation-list .src-id { color: var(--accent); font-family: monospace; }
+    .citation-list .src-score { color: var(--muted); font-size: 12px; }
+
+    /* ---- Chart ---- */
+    .chart-widget {
+      background: #1f2937;
+      border: 1px solid #a78bfa;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 12px 0;
+      max-width: 720px;
+    }
+    .chart-widget h3 {
+      font-size: 13px;
+      color: #a78bfa;
+      margin-bottom: 8px;
+    }
+    .chart-stub {
+      background: #0e1116;
+      border: 1px dashed #2a3142;
+      border-radius: 4px;
+      padding: 24px;
+      text-align: center;
+      color: var(--muted);
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .chart-stub .bar-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; justify-content: center; }
+    .chart-stub .bar { height: 16px; background: #a78bfa; border-radius: 2px; }
+    .chart-stub .label { color: var(--muted); }
+
+    /* ---- RunCancelled ---- */
+    .cancelled-banner {
+      background: #f8514922;
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      padding: 10px 14px;
+      border-radius: 6px;
+      margin: 12px 0;
+      max-width: 720px;
+      font-size: 13px;
+    }
+
+    /* ---- 消息气泡 ---- */
+    .message { max-width: 720px; margin: 12px 0; }
+    .message.user { margin-left: auto; }
+    .message .bubble {
+      display: inline-block;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: #21262d;
+      max-width: 100%;
+      word-wrap: break-word;
+    }
+    .message.user .bubble { background: #1f6feb44; }
+
+    /* ---- 输入区 ---- */
+    #input-area {
+      background: var(--panel);
+      border-top: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex;
+      gap: 8px;
+    }
+    #session-goal-input {
+      flex: 1;
+      background: #0e1116;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 14px;
+      outline: none;
+    }
+    #session-goal-input:focus { border-color: var(--accent); }
+    #session-goal-input:disabled { opacity: 0.5; cursor: not-allowed; }
+    #send-button, #cancel-button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    #send-button:disabled { opacity: 0.5; cursor: not-allowed; }
+    #cancel-button { background: var(--danger); display: none; }
+    #cancel-button.show { display: inline-block; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar">
+      <h2>会话列表</h2>
+      <button id="new-session-button" data-testid="new-session-button">+ 新建会话</button>
+      <div id="session-list"></div>
+    </aside>
+
+    <main id="main">
+      <div id="header">
+        <h1 id="header-title">kivi-agent Web Chat (test page)</h1>
+        <span id="connection-status" data-testid="connection-status" data-state="closed">未连接</span>
+      </div>
+      <div id="reconnecting-status" data-testid="reconnecting-status">连接断开，正在重连...</div>
+      <div id="messages" data-testid="messages">
+        <div class="empty-state">点击"新建会话"开始</div>
+      </div>
+      <div id="input-area">
+        <input
+          id="session-goal-input"
+          data-testid="session-goal-input"
+          placeholder="输入目标..."
+          autocomplete="off"
+        />
+        <button id="send-button" data-testid="send-button">发送</button>
+        <button id="cancel-button" data-testid="cancel-button">停止</button>
+      </div>
+    </main>
+  </div>
+
+  <script>
+  // ---- 简单状态机（无框架） ----------------------------------------
+  const GATEWAY = (() => {
+    // 通过 Vite proxy 转发；这里测试页用静态端口直连
+    const params = new URLSearchParams(location.search);
+    const gw = params.get("gateway") || "http://127.0.0.1:8000";
+    const wsBase = gw.replace(/^http/, "ws");
+    return { http: gw, ws: wsBase };
+  })();
+
+  const state = {
+    currentSessionId: null,
+    ws: null,
+    isRunning: false,
+    events: [],
+  };
+
+  // ---- DOM 辅助 ----------------------------------------------------
+  const $ = (id) => document.getElementById(id);
+
+  function setConnectionState(s) {
+    const el = $("connection-status");
+    el.dataset.state = s;
+    el.textContent = s === "connected" ? "已连接" : s === "reconnecting" ? "重连中" : "未连接";
+    $("reconnecting-status").classList.toggle("show", s === "reconnecting");
+  }
+
+  function appendMessage(role, text) {
+    const div = document.createElement("div");
+    div.className = `message ${role}`;
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.textContent = text;
+    div.appendChild(bubble);
+    $("messages").appendChild(div);
+    $("messages").scrollTop = $("messages").scrollHeight;
+  }
+
+  function renderRoutePanel(targetProfiles) {
+    const div = document.createElement("div");
+    div.className = "route-panel";
+    div.dataset.testid = "route-panel";
+    div.setAttribute("data-testid", "route-panel");
+    const h3 = document.createElement("h3");
+    h3.textContent = "路由决策 ";
+    const badge = document.createElement("span");
+    badge.className = "badge";
+    badge.textContent = targetProfiles.length > 1 ? "multi_intent" : "single";
+    h3.appendChild(badge);
+    div.appendChild(h3);
+    const profiles = document.createElement("div");
+    profiles.className = "profiles";
+    targetProfiles.forEach(p => {
+      const tag = document.createElement("span");
+      tag.className = "profile-tag";
+      tag.textContent = p;
+      profiles.appendChild(tag);
+    });
+    div.appendChild(profiles);
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    meta.textContent = `intent=multi confidence=0.95`;
+    div.appendChild(meta);
+    $("messages").appendChild(div);
+  }
+
+  function renderCitation(sources) {
+    const div = document.createElement("div");
+    div.className = "citation-widget";
+    div.setAttribute("data-testid", "citation-widget");
+    const h3 = document.createElement("h3");
+    h3.textContent = `引用来源 (${sources.length})`;
+    div.appendChild(h3);
+    const ul = document.createElement("ul");
+    ul.className = "citation-list";
+    sources.forEach(s => {
+      const li = document.createElement("li");
+      const id = document.createElement("span");
+      id.className = "src-id";
+      id.textContent = s.id;
+      const title = document.createElement("span");
+      title.textContent = ` — ${s.title}`;
+      const score = document.createElement("span");
+      score.className = "src-score";
+      score.textContent = ` (${(s.score * 100).toFixed(0)}%)`;
+      li.append(id, title, score);
+      ul.appendChild(li);
+    });
+    div.appendChild(ul);
+    $("messages").appendChild(div);
+  }
+
+  function renderChart(optionDict) {
+    const div = document.createElement("div");
+    div.className = "chart-widget";
+    div.setAttribute("data-testid", "chart-widget");
+    const h3 = document.createElement("h3");
+    h3.textContent = "图表: " + (optionDict.title?.text || optionDict.chart_id || "chart");
+    div.appendChild(h3);
+    const stub = document.createElement("div");
+    stub.className = "chart-stub";
+    const series = optionDict.series || [];
+    const xData = optionDict.xAxis?.data || [];
+    if (series.length > 0 && xData.length > 0) {
+      const max = Math.max(...series.flatMap(s => s.data || [0]));
+      xData.forEach((label, i) => {
+        const row = document.createElement("div");
+        row.className = "bar-row";
+        series.forEach(s => {
+          const v = (s.data || [])[i] || 0;
+          const bar = document.createElement("div");
+          bar.className = "bar";
+          bar.style.width = `${(v / max) * 120}px`;
+          const span = document.createElement("span");
+          span.className = "label";
+          span.textContent = `${s.name}=${v}`;
+          const wrap = document.createElement("span");
+          wrap.append(bar, span);
+          row.appendChild(wrap);
+        });
+        const lbl = document.createElement("span");
+        lbl.className = "label";
+        lbl.textContent = label;
+        row.appendChild(lbl);
+        stub.appendChild(row);
+      });
+    } else {
+      stub.textContent = "(empty chart)";
+    }
+    div.appendChild(stub);
+    $("messages").appendChild(div);
+  }
+
+  function renderCancelled(reason) {
+    const div = document.createElement("div");
+    div.className = "cancelled-banner";
+    div.setAttribute("data-testid", "cancelled-banner");
+    div.textContent = `✕ RunCancelled: ${reason}`;
+    $("messages").appendChild(div);
+  }
+
+  function renderThinking(content) {
+    appendMessage("assistant", "💭 " + content);
+  }
+
+  function renderSynthesized(text) {
+    appendMessage("assistant", "📝 " + text);
+  }
+
+  // ---- 业务事件路由 ------------------------------------------------
+  // 这里把 Gateway 推送的事件分发到对应 widget
+  // 真实 Vue 组件会订阅 ws.ts 的事件流，按 event.type 路由
+  let lastRouteProfiles = [];
+  function handleEvent(event) {
+    state.events.push(event);
+    switch (event.type) {
+      case "session.created":
+        // session created, no UI needed
+        break;
+      case "session.message_received":
+        // user message echo, skip
+        break;
+      case "run.started":
+        // 模拟 route decision：根据 goal 关键词推断 profiles
+        const goal = (state.currentGoal || "").toLowerCase();
+        const profiles = [];
+        if (goal.match(/网上|online|search|最新/)) profiles.push("web_search");
+        if (goal.match(/知识库|内部|rag/)) profiles.push("rag");
+        if (goal.match(/数据库|表|统计|database/)) profiles.push("database");
+        if (profiles.length === 0) profiles.push("general");
+        if (profiles.length > 1) profiles.push("synthesizer");
+        lastRouteProfiles = profiles;
+        renderRoutePanel(profiles);
+        break;
+      case "llm.thinking":
+        renderThinking(event.content || "(thinking)");
+        break;
+      case "rag.sources_cited":
+        renderCitation(event.sources || []);
+        break;
+      case "chart.rendered":
+        renderChart(event.option_dict || {});
+        break;
+      case "frontend.tool_call_responded":
+        // 真实前端会渲染 synthesizer 汇总；这里显示个 hint
+        appendMessage("assistant", "🔧 工具已响应");
+        break;
+      case "run.cancelled":
+        renderCancelled(event.reason || "user_requested");
+        break;
+      case "run.finished":
+        if (event.status === "success" && lastRouteProfiles.length > 1) {
+          renderSynthesized("多意图查询完成，已综合 web_search + rag 结果。");
+        } else if (event.status === "success") {
+          renderSynthesized("任务完成。");
+        }
+        // run finished → 解锁输入 + 隐藏 cancel button
+        setRunning(false);
+        break;
+      default:
+        // 未知事件类型：忽略
+        break;
+    }
+  }
+
+  // ---- WS 连接管理 -------------------------------------------------
+  function connectWS(sessionId) {
+    if (state.ws) {
+      try { state.ws.close(); } catch (_) {}
+      state.ws = null;
+    }
+    const url = `${GATEWAY.ws}/sessions/${sessionId}/ws`;
+    setConnectionState("connecting");
+    const ws = new WebSocket(url);
+    state.ws = ws;
+    ws.onopen = () => {
+      setConnectionState("connected");
+    };
+    ws.onmessage = (msg) => {
+      try {
+        const evt = JSON.parse(msg.data);
+        handleEvent(evt);
+      } catch (e) {
+        console.error("parse event failed", e);
+      }
+    };
+    ws.onclose = () => {
+      setConnectionState("closed");
+    };
+    ws.onerror = () => {
+      setConnectionState("reconnecting");
+    };
+  }
+
+  // 监听外部 online/offline 事件（Playwright 用 setOffline 触发）
+  window.addEventListener("offline", () => {
+    setConnectionState("reconnecting");
+  });
+  window.addEventListener("online", () => {
+    // 重连
+    if (state.currentSessionId) {
+      connectWS(state.currentSessionId);
+    }
+  });
+
+  // ---- 输入区交互 -------------------------------------------------
+  function setRunning(running) {
+    state.isRunning = running;
+    $("session-goal-input").disabled = running;
+    if (running) {
+      $("session-goal-input").dataset.disabledMarker = "1";
+    } else {
+      delete $("session-goal-input").dataset.disabledMarker;
+    }
+    $("send-button").style.display = running ? "none" : "inline-block";
+    $("cancel-button").classList.toggle("show", running);
+  }
+
+  async function newSession() {
+    const goal = $("session-goal-input").value.trim();
+    if (!goal) {
+      alert("请输入目标");
+      return;
+    }
+    state.currentGoal = goal;
+    appendMessage("user", goal);
+    $("session-goal-input").value = "";
+    $("messages").innerHTML = "";  // 清空
+    appendMessage("user", goal);
+
+    try {
+      const resp = await fetch(`${GATEWAY.http}/sessions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: "e2e-user", goal }),
+      });
+      if (!resp.ok) throw new Error(`start session failed: ${resp.status}`);
+      const info = await resp.json();
+      state.currentSessionId = info.session_id;
+      addSessionToList(info);
+      connectWS(info.session_id);
+      setRunning(true);
+    } catch (e) {
+      appendMessage("assistant", "❌ 创建失败: " + e.message);
+    }
+  }
+
+  async function cancel() {
+    if (!state.currentSessionId) return;
+    try {
+      await fetch(`${GATEWAY.http}/sessions/${state.currentSessionId}/cancel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: "user_requested" }),
+      });
+    } catch (e) {
+      console.error("cancel failed", e);
+    }
+  }
+
+  function addSessionToList(info) {
+    const list = $("session-list");
+    const div = document.createElement("div");
+    div.className = "session-item active";
+    div.textContent = info.goal.slice(0, 30);
+    div.dataset.sessionId = info.session_id;
+    list.appendChild(div);
+  }
+
+  // ---- 事件绑定 ----------------------------------------------------
+  $("new-session-button").addEventListener("click", newSession);
+  $("send-button").addEventListener("click", newSession);
+  $("session-goal-input").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") newSession();
+  });
+  $("cancel-button").addEventListener("click", cancel);
+
+  // 启动时连接状态为 closed
+  setConnectionState("closed");
+  </script>
+</body>
+</html>

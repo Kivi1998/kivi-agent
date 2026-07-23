@@ -1,0 +1,15 @@
+{
+  "name": "kivi-agent-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "description": "WT-E5 E2E tests: Playwright + FakeAgentRuntime (agent: package-web-e2e-v3)",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "screenshot": "playwright test --reporter=line",
+    "test:unit": "python3 -m pytest fixtures/test_fake_runtime.py -v"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  }
+}
