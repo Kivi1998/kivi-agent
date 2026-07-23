@@ -239,3 +239,150 @@ export interface TracesResponse {
   run_id: string
   traces: TraceTimeline[]
 }
+
+// ---- T11 多 Agent 协作 Dashboard 类型（Wave 5.2 WT-H4；与 gateway/team_dashboard.py 对齐）----
+
+/** 团队全局汇总（GET /api/team/summary） */
+export interface TeamSummary {
+  team_count: number
+  success_rate: number
+  avg_delegation_accuracy: number
+  avg_handoff_quality: number
+  avg_coordination_latency_s: number
+  avg_agent_utilization: number
+}
+
+/** 团队运行摘要（GET /api/team/teams） */
+export interface TeamSummaryItem {
+  team_id: string
+  goal: string
+  member_count: number
+  success: boolean
+  created_at: string | null
+  finished_at: string | null
+}
+
+/** 团队列表响应（GET /api/team/teams） */
+export interface TeamListResponse {
+  total: number
+  teams: TeamSummaryItem[]
+}
+
+/** 成员最终结果（嵌套在 TeamDetail.member_outcomes 中） */
+export interface MemberOutcome {
+  member_id: string
+  role: string
+  success: boolean
+  steps: number
+  tool_calls: number
+  finished_at: string | null
+  final_answer: string
+}
+
+/** 团队详情（GET /api/team/teams/:teamId） */
+export interface TeamDetail {
+  team_id: string
+  goal: string
+  member_count: number
+  success: boolean
+  created_at: string | null
+  finished_at: string | null
+  member_outcomes: MemberOutcome[]
+}
+
+/** 委派步骤（GET /api/team/teams/:teamId/delegations） */
+export interface DelegationStep {
+  step_id: string
+  from_member: string
+  to_member: string
+  sub_task: string
+  message: string
+  success: boolean
+  ts: string
+}
+
+/** T11 6 指标（GET /api/team/teams/:teamId/metrics） */
+export interface T11Metrics {
+  team_success_rate: { rate: number; passed: number; total: number }
+  delegation_accuracy: { rate: number; matched: number; applicable: number }
+  handoff_quality: { rate: number; successful: number; total: number }
+  coordination_latency_s: { avg_s: number; p50_s: number; p95_s: number; count: number }
+  agent_utilization: { rate: number; tool_calls: number; total_steps: number }
+  role_consistency: { rate: number; role_changes: number; total_steps: number }
+}
+
+// ---- T12 coding Agent Dashboard 类型（Wave 5.2 WT-H4；与 gateway/coding_dashboard.py 对齐）----
+
+/** coding 全局汇总（GET /api/coding/summary） */
+export interface CodingSummary {
+  run_count: number
+  task_completion_rate: number
+  tests_passed_rate: number
+  avg_iteration_count: number
+  avg_time_to_first_pass_s: number
+  self_recovery_rate: number
+}
+
+/** coding run 摘要（GET /api/coding/runs） */
+export interface CodingRunItem {
+  run_id: string
+  task: string
+  test_file: string
+  iteration_count: number
+  success: boolean
+  started_at: string | null
+  finished_at: string | null
+}
+
+/** coding run 列表响应（GET /api/coding/runs） */
+export interface CodingRunListResponse {
+  total: number
+  runs: CodingRunItem[]
+}
+
+/** Patch 记录（GET /api/coding/runs/:runId/patches） */
+export interface PatchRecord {
+  patch_id: string
+  iteration: number
+  file_path: string
+  hunks_proposed: number
+  hunks_applied: number
+  diff: string
+  ts: string
+}
+
+/** 单次 pytest 记录（GET /api/coding/runs/:runId/patches 内嵌） */
+export interface TestRunRecord {
+  iteration: number
+  tests_total: number
+  tests_passed: number
+  tests_failed: number
+  compile_passed: boolean
+  raw_output: string
+  ts: string
+}
+
+/** coding run 详情（GET /api/coding/runs/:runId） */
+export interface CodingDetail {
+  run_id: string
+  task: string
+  test_file: string
+  iteration_count: number
+  success: boolean
+  started_at: string | null
+  finished_at: string | null
+  patches: PatchRecord[]
+  test_runs: TestRunRecord[]
+}
+
+/** T12 8 指标（GET /api/coding/runs/:runId/metrics） */
+export interface T12Metrics {
+  task_completion_rate: { rate: number; passed: number; total: number }
+  tests_passed_rate: { rate: number; passed: number; total: number }
+  patch_quality: { rate: number; hunks_applied: number; hunks_proposed: number }
+  iteration_count: { value: number; iterations: number }
+  time_to_first_pass_s: { avg_s: number; first_pass_iterations: number }
+  self_recovery_rate: { rate: number; auto_recovered: number; total_failures: number }
+  compile_success_rate: { rate: number; compile_passed: number; total_runs: number }
+  test_growth_rate: { rate: number; tests_added: number; iterations: number }
+}
