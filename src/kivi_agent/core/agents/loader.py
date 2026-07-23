@@ -37,7 +37,7 @@ class AgentProfileLoader:
                     return None
         return None
 
-    # 返回 [项目本地, 用户全局, 内建, 内建业务子目录] 路径；load() 返回第一个存在的，项目本地优先级最高
+    # 返回 [项目本地, 用户全局, 内建, 内建业务子目录] 路径；返回第一个存在的，项目本地优先级最高
     def _search_paths(self, name: str) -> list[Path]:
         # 路径遍历保护：业务子目录名硬编码为 "business"，不接受外部输入
         builtin_business = self._BUILTIN_DIR / "business" / f"{name}.toml"
