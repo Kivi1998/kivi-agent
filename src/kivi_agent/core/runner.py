@@ -284,7 +284,7 @@ class AgentRunner:
         # memory_recall（agent: package-c-v1）
         if _ok("memory_recall"):
             registry.register(MemoryRecallTool())
-        # map_load（agent: package-demo-v7）：前端地图 Tool，加载公开 GeoJSON + 推 map.geojson_loaded 事件
+        # map_load（agent: package-demo-v7）：前端地图 Tool
         if _ok("map_load"):
             registry.register(MapLoadTool(bus=bus))
         return registry

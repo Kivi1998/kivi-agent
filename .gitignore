@@ -52,3 +52,6 @@ apps/web-chat/.vite/
 # Wave 7 WT-K3: performance benchmark JSON outputs (generated at test runtime)
 # Keep reports/.gitkeep to preserve the directory
 reports/benchmark_*.json
+reports/demo_*.json
+reports/*.json
+!reports/.gitkeep
