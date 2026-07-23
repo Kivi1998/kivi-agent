@@ -71,6 +71,7 @@ class Demo2Rag(DemoBase):
             "question": question,
             "source_count": len(sources),
             "source_ids": source_ids,
+            "has_source_id": has_source_id,
             "has_ref_json": has_ref_json,
             "answer_preview": answer[:200],
         }

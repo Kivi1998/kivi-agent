@@ -232,10 +232,22 @@ def test_route_decision_field_types() -> None:
 
 # 功能：BusinessRouter 暴露的关键静态常量（INTENT_KEYWORDS / ROUTE_PRIORITY）应符合 plan §3.1 冻结
 # 设计：硬断言长度与具体意图名——这些是 v1 契约范围，变更需走 ADR
+# Wave 7 扩展：加 frontend_tool 业务意图（demo 4 需要）
 def test_router_class_constants_frozen() -> None:
-    # 3 类业务意图 + 优先级
-    assert set(BusinessRouter.INTENT_KEYWORDS.keys()) == {"rag", "web_search", "database"}
-    assert BusinessRouter.ROUTE_PRIORITY == ["database", "rag", "web_search", "general"]
+    # 4 类业务意图 + 优先级（Wave 7 加 frontend_tool）
+    assert set(BusinessRouter.INTENT_KEYWORDS.keys()) == {
+        "rag",
+        "web_search",
+        "database",
+        "frontend_tool",
+    }
+    assert BusinessRouter.ROUTE_PRIORITY == [
+        "database",
+        "rag",
+        "web_search",
+        "frontend_tool",
+        "general",
+    ]
     # 每个 intent 至少 1 个关键词
     for intent, kws in BusinessRouter.INTENT_KEYWORDS.items():
         assert len(kws) > 0, f"{intent} has no keywords"
