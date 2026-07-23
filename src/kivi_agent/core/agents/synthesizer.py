@@ -29,7 +29,6 @@ from kivi_agent.core.bus.events import (
 from kivi_agent.core.events.bus import EventBus
 from kivi_agent.core.llm.base import LLMProvider
 from kivi_agent.core.subagent.registry import BackgroundTaskRegistry
-from kivi_agent.core.subagent.tool import spawn_background_subagent
 
 if TYPE_CHECKING:
     from kivi_agent.core.permissions.manager import PermissionManager
@@ -177,6 +176,10 @@ class SynthesizerRunner:
         self._bus.subscribe(_on_event)
 
         try:
+            # 局部 import：避免 core.agents ↔ core.subagent 循环依赖
+            # （subagent/tool 会在模块级 import core.agents.loader）
+            from kivi_agent.core.subagent.tool import spawn_background_subagent
+
             # 并行启动所有 sub-profile
             spawn_tasks: list[asyncio.Task[str]] = []
             for name, profile in loadable:
