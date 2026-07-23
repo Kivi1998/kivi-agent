@@ -18,8 +18,6 @@ from __future__ import annotations
 import json
 from unittest.mock import AsyncMock
 
-import pytest
-
 from kivi_agent.core.business.rag_query import RagQueryTool
 from kivi_agent.core.rag.client import RagKbError
 from kivi_agent.core.rag.types import RagSearchResult, RagSource

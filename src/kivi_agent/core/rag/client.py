@@ -9,7 +9,7 @@ rag-kb 不在本仓库；本客户端按 REST 惯例设计 request/response sche
 假设如下（待用户/rag-kb 维护方 review）：
 - POST /api/v1/search
   请求：{"query": str, "kb_id": str | null, "top_k": int = 5}
-  响应：{"answer": str, "sources": [{"id", "title", "snippet", "score", "url"}], "rewritten_query": str}
+  响应：{"answer", "sources": [...], "rewritten_query": str}
 
 设计要点：
 - 使用 httpx.AsyncClient（已有依赖，无需新增）
