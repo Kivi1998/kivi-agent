@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -13,7 +14,8 @@ from kivi_agent.core.memory.local_backend import LocalMemoryBackend
 
 # 测试用 hash embedding：与 dedup 测试一致。
 def _hash_embed(text: str) -> list[float]:
-    h = abs(hash(text))
+    # 用 hashlib 确定性 hash，避免 Python 内置 hash() 受 PYTHONHASHSEED 影响（导致跨进程 flaky）
+    h = int.from_bytes(hashlib.sha256(text.encode("utf-8")).digest()[:4], "big")
     return [((h >> i) & 0xFF) / 255.0 for i in range(0, 32, 8)]
 
 
