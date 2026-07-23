@@ -146,3 +146,96 @@ export interface BusinessEventBundle {
   frontend_tool_calls: FrontendToolCallRequested[]
   cancelled: RunCancelledEvent | null
 }
+
+// ---- Trace Dashboard 类型（Wave 5.1 WT-G4；与 gateway/dashboard.py 对齐）----
+
+/** 全局汇总（GET /dashboard/summary） */
+export interface Summary {
+  case_count: number
+  success_rate: number
+  avg_latency_s: number
+  total_tokens: number
+  total_cost_usd: number
+}
+
+/** Run 摘要（GET /dashboard/runs） */
+export interface RunSummary {
+  run_id: string
+  started_at: string | null
+  case_count: number
+  success_count: number
+}
+
+/** 单 case 评测结果（嵌套在 RunDetail.results 中） */
+export interface CaseEvalResult {
+  case_id: string
+  success: boolean
+  latency_s?: number
+  input_tokens?: number
+  output_tokens?: number
+  cost_usd?: number
+  final_answer?: string
+  tool_calls?: Array<{ tool_name: string; success: boolean }>
+  rag_sources?: Array<Record<string, unknown>>
+}
+
+/** Run 详情（GET /dashboard/runs/:runId） */
+export interface RunDetail {
+  run_id: string
+  case_count: number
+  success_count: number
+  results: CaseEvalResult[]
+}
+
+/** 7 指标（与 metrics_report.py 一致） */
+export interface MetricsReport {
+  dataset_name: string
+  case_count: number
+  generated_at: string
+  metrics: {
+    task_success_rate: { rate: number; passed: number; total: number }
+    route_accuracy: { rate: number; matched: number; applicable: number }
+    tool_selection_accuracy: {
+      exact_match_rate: number
+      contain_match_rate: number
+      applicable: number
+    }
+    rag_citation_accuracy: { rate: number; matched: number; applicable: number }
+    avg_latency_seconds: {
+      avg_s: number
+      p50_s: number
+      p95_s: number
+      count: number
+    }
+    total_tokens: {
+      input: number
+      output: number
+      cache_read: number
+      total: number
+    }
+    total_cost_usd: { total_usd: number; model: string; per_case_avg_usd: number }
+  }
+}
+
+/** 单 case 事件流（GET /dashboard/runs/:runId/traces?case_id=...） */
+export interface TraceTimeline {
+  case_id: string
+  events: Array<{
+    type: string
+    ts: string
+    data: Record<string, unknown>
+  }>
+  tool_calls: Array<{
+    tool_name: string
+    started_at: string
+    finished_at: string | null
+    success: boolean
+  }>
+  rag_sources: Array<Record<string, unknown>>
+}
+
+/** 事件流响应（GET /dashboard/runs/:runId/traces） */
+export interface TracesResponse {
+  run_id: string
+  traces: TraceTimeline[]
+}
