@@ -159,8 +159,8 @@ def build_dashboard_router() -> APIRouter:
         # 懒导入：依赖 WT-G1 (EvalCase/EvalDataset/EvalResult) + WT-G2 (compute_all_metrics)
         try:
             from kivi_agent.eval.dataset import EvalCase, EvalDataset
-            from kivi_agent.eval.result import EvalResult
             from kivi_agent.eval.metrics.report import compute_all_metrics
+            from kivi_agent.eval.result import EvalResult
         except ImportError as exc:
             raise HTTPException(
                 status_code=status.HTTP_501_NOT_IMPLEMENTED,
