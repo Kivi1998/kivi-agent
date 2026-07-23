@@ -386,3 +386,80 @@ export interface T12Metrics {
   compile_success_rate: { rate: number; compile_passed: number; total_runs: number }
   test_growth_rate: { rate: number; tests_added: number; iterations: number }
 }
+
+// ---- Wave 6.1 WT-J4: 前端记忆管理 UI 类型（与 gateway/memory_dashboard.py 对齐）----
+
+/** 记忆类型：与 src/kivi_agent/core/memory/types.py 的 MemoryType Literal 对齐 */
+export type MemoryType = 'user' | 'feedback' | 'project' | 'reference' | 'task'
+
+/** 记忆状态：与 MemoryItem.status 对齐 */
+export type MemoryStatus = 'active' | 'pending' | 'archived' | 'expired'
+
+/** 记忆审计事件类型 */
+export type MemoryAuditAction =
+  | 'create'
+  | 'update'
+  | 'delete'
+  | 'archive'
+  | 'expire'
+  | 'dedup_merge'
+  | 'read'
+
+/** 单条记忆（与 MemoryItem Pydantic 对齐） */
+export interface MemoryItem {
+  id: string
+  content: string
+  memory_type: MemoryType
+  importance: number
+  status: MemoryStatus
+  source: string
+  created_at: string
+  expires_at: string | null
+  updated_at: string | null
+}
+
+/** GET /api/memory/items 单条响应（带 metadata） */
+export interface MemoryItemResponse {
+  item: MemoryItem
+}
+
+/** GET /api/memory/items 列表响应（带分页 total） */
+export interface MemoryListResponse {
+  total: number
+  items: MemoryItem[]
+}
+
+/** 搜索命中结果（带 score 字段） */
+export interface MemorySearchResult {
+  id: string
+  content: string
+  score: number
+  memory_type: MemoryType
+  importance: number
+  status: MemoryStatus
+  source: string
+  created_at: string
+}
+
+/** GET /api/memory/search 响应 */
+export interface MemorySearchResponse {
+  query: string
+  top_k: number
+  results: MemorySearchResult[]
+}
+
+/** 记忆审计事件 */
+export interface MemoryAuditEvent {
+  event_id: string
+  memory_id: string
+  action: MemoryAuditAction
+  actor: string
+  ts: string
+  detail: Record<string, unknown>
+}
+
+/** GET /api/memory/audit 响应 */
+export interface MemoryAuditResponse {
+  memory_id: string
+  events: MemoryAuditEvent[]
+}
