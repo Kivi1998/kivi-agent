@@ -23,6 +23,7 @@ FastAPI 暴露记忆管理 API（Wave 6.1 WT-J3）：
 from __future__ import annotations
 
 import logging
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, TypedDict, cast
@@ -496,16 +497,10 @@ def build_memory_dashboard_router() -> APIRouter:
         # 懒导入 J2 的 MemoryAuditLogger（如可用，提供更丰富的查询能力）
         events: list[dict[str, Any]] = []
         backend = "local"
-        try:
-            import importlib.util
-
-            spec = importlib.util.find_spec("kivi_agent.core.memory.audit")
-            if spec is not None:
-                # J2 集成时启用：MemoryAuditLogger.query(memory_id) 优先
-                # 集成期主控会调整这里的实现
-                backend = "audit_logger"
-        except (ImportError, ValueError):
-            pass
+        if "kivi_agent.core.memory.audit" in sys.modules:
+            # J2 集成时启用：MemoryAuditLogger.query(memory_id) 优先
+            # 集成期主控会调整这里的实现
+            backend = "audit_logger"
         # 当前实现：直接从 local audit.log 读（与 LocalMemoryBackend.audit 写盘一致）
         store = get_memory_store()
         events = _read_audit_events(store, memory_id)
