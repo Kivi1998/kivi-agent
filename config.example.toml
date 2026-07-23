@@ -34,3 +34,10 @@ database_url = "sqlite:///~/.kivi/kivi.db"
 interval_s = 60.0
 # 单次健康检查超时（秒；正数）
 timeout_s = 3.0
+
+# Eval 价格表（agent: package-eval-metrics-v51）
+# 格式：model_name = [input_per_1k_usd, output_per_1k_usd]
+[pricing]
+"claude-sonnet-4-6" = [0.003, 0.015]
+"claude-haiku-4-5" = [0.0008, 0.004]
+"gpt-4o" = [0.005, 0.015]
