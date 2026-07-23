@@ -106,6 +106,14 @@ export interface RunCancelledEvent {
 
 // ---- 业务事件联合（v1 §5.2.1 冻结的 6 类）----
 
+/** 路由决策事件（扩展点，gateway 透传 Router 输出时构造；事件总线未冻结） */
+export interface RouteDecidedEvent {
+  type: 'route.decided'
+  run_id: string
+  decision: RouteDecision
+  ts: string
+}
+
 export type BusinessEvent =
   | LlmThinkingEvent
   | ChartRenderedEvent
@@ -113,6 +121,7 @@ export type BusinessEvent =
   | FrontendToolCallRequested
   | FrontendToolCallResponded
   | RunCancelledEvent
+  | RouteDecidedEvent
 
 // ---- 路由决策（v1 §3.1 冻结字段，TypeScript 反推）----
 

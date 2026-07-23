@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import CitationWidget from './CitationWidget.vue'
-import type { RagSourcesCitedEvent } from '../composables/useBusinessEvents'
+import type { RagSourcesCitedEvent } from '../types/api'
 
 function makeEvent(sources: RagSourcesCitedEvent['sources']): RagSourcesCitedEvent {
   return {

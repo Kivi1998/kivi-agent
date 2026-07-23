@@ -67,7 +67,10 @@ function categoryLabel(category: AppError['category']): string {
         清空全部
       </button>
     </div>
-    <ul class="flex flex-col gap-1" data-testid="error-list">
+    <ul
+      class="flex flex-col gap-1"
+      data-testid="error-list"
+    >
       <li
         v-for="(err, idx) in errors"
         :key="`${err.ts}-${idx}`"
@@ -77,8 +80,13 @@ function categoryLabel(category: AppError['category']): string {
         :data-category="err.category"
       >
         <span class="font-mono shrink-0">[{{ categoryLabel(err.category) }}]</span>
-        <span class="flex-1 break-words">
-          <span v-if="err.code" class="font-mono opacity-70 mr-1">{{ err.code }}</span>
+        <span
+          class="flex-1 break-words"
+        >
+          <span
+            v-if="err.code"
+            class="font-mono opacity-70 mr-1"
+          >{{ err.code }}</span>
           <span>{{ err.message }}</span>
         </span>
         <button

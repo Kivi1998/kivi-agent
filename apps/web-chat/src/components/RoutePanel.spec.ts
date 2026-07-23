@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 import RoutePanel from './RoutePanel.vue'
-import type { RouteDecision } from '../composables/useBusinessEvents'
+import type { RouteDecision } from '../types/api'
 
 function makeDecision(overrides: Partial<RouteDecision> = {}): RouteDecision {
   return {

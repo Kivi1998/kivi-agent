@@ -25,7 +25,7 @@ import {
   DataZoomComponent,
 } from 'echarts/components'
 
-import type { ChartRenderedEvent } from '../composables/useBusinessEvents'
+import type { ChartRenderedEvent } from '../types/api'
 
 // 在模块加载时一次性注册（use() 内部幂等）
 use([

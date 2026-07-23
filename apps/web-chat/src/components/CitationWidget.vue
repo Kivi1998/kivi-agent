@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import type { RagSourcesCitedEvent, RagSource } from '../composables/useBusinessEvents'
+import type { RagSourcesCitedEvent, RagSource } from '../types/api'
 
 /**
  * CitationWidget — RAG 引用展示组件。

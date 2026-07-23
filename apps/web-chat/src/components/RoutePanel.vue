@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { RouteDecision } from '../composables/useBusinessEvents'
+import type { RouteDecision } from '../types/api'
 
 /**
  * RoutePanel — 路由决策展示组件。

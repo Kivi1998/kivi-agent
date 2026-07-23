@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { shallowMount } from '@vue/test-utils'
 import ChartWidget from './ChartWidget.vue'
-import type { ChartRenderedEvent } from '../composables/useBusinessEvents'
+import type { ChartRenderedEvent } from '../types/api'
 
 /** 构造 1 个 bar chart option */
 function makeBarEvent(overrides: Partial<ChartRenderedEvent> = {}): ChartRenderedEvent {

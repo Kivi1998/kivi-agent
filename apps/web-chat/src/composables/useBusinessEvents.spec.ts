@@ -6,7 +6,7 @@ import type {
   LlmThinkingEvent,
   RouteDecidedEvent,
   RouteDecision,
-} from './useBusinessEvents'
+} from '../types/api'
 
 /** 构造 1 条 rag.sources_cited 事件（最少字段） */
 function makeRagEvent(overrides: Partial<RagSourcesCitedEvent> = {}): RagSourcesCitedEvent {
