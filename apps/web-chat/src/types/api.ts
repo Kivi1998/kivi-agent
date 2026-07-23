@@ -104,6 +104,16 @@ export interface RunCancelledEvent {
   ts: string
 }
 
+/** 前端地图加载完成（与 MapGeojsonLoadedEvent 对齐；Wave 7 demo 4 新增） */
+export interface MapGeojsonLoadedEvent {
+  type: 'map.geojson_loaded'
+  url: string
+  layer_id: string
+  features_count: number
+  bbox: [number, number, number, number] | null
+  ts: string
+}
+
 // ---- 业务事件联合（v1 §5.2.1 冻结的 6 类）----
 
 /** 路由决策事件（扩展点，gateway 透传 Router 输出时构造；事件总线未冻结） */
@@ -122,6 +132,7 @@ export type BusinessEvent =
   | FrontendToolCallResponded
   | RunCancelledEvent
   | RouteDecidedEvent
+  | MapGeojsonLoadedEvent
 
 // ---- 路由决策（v1 §3.1 冻结字段，TypeScript 反推）----
 
