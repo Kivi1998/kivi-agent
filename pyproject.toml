@@ -20,12 +20,16 @@ dependencies = [
     "elasticsearch[async]>=8.0",
 ]
 
-# 安装后可在 PATH 中执行的入口：`kivi` / `kivi-core` / `kivi-tui`
+# 安装后可在 PATH 中执行的入口：`kivi` / `kivi-core` / `kivi-tui` / `kivi-start` / `kivi-stop` / `kivi-health`
 [project.scripts]
 kivi = "kivi_agent.cli.main:main"
 kivi-core = "kivi_agent.core.app:run"
 kivi-tui = "kivi_agent.tui.__main__:main"
 kivi-eval = "kivi_agent.cli.eval:main"
+# Wave 7 WT-K1: Docker Compose 三模式的 Python 入口（封装 scripts/*.sh）
+kivi-start = "kivi_agent.scripts.start:main"
+kivi-stop = "kivi_agent.scripts.stop:main"
+kivi-health = "kivi_agent.scripts.health:main"
 
 # ---- Hatch：打 wheel 时从 src 布局收录包 ----
 [tool.hatch.build.targets.wheel]
