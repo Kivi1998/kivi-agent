@@ -1,4 +1,4 @@
-"""query_database 业务 Tool（agent: package-c-v1）。
+"""query_database 业务 Tool（agent: package-db-real-v4）。
 
 按 docs/contracts/v1.md §1 冻结名 = query_database（旧名 db_query 已弃用）。
 按 C 报告 §3.7 + §3.10 决议：
@@ -6,19 +6,28 @@
 - 严格只读（演示版 SELECT only）
 - 调用次数限制：单次 run 最多 3 次（演示版用类属性 _call_count）
 
-演示版 100% Mock：固定 3 行 mock 数据 + 固定 SQL 模板。
-未来切真 ask-db-service：替换 _mock_step1_generate_sql() + _mock_step2_execute() 实现。
+Wave 4 改造（agent: package-db-real-v4）：
+- 构造时接收 DatabaseAdapter（SQLite / Postgres）；None = 走默认 mock 模式
+- 真实模式：调 adapter.execute(sql, params)；失败时记 warn 日志并降级到 mock
+- 默认 mock 模式：保留原有 _mock_step2_execute 行为（3 行固定数据），保证现有测试稳定
+- MockAdapter 是新加的协议级 mock（解析 SELECT * FROM <table>），不替换 _mock_step2_execute
 """
 
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any, ClassVar
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from kivi_agent.core.business.base import BaseBusinessTool
+from kivi_agent.core.db import DatabaseAdapter
+from kivi_agent.core.db.postgres_adapter import PostgresAdapter
+from kivi_agent.core.db.sqlite_adapter import SQLiteAdapter
 from kivi_agent.core.tools.base import ToolResult
+
+log = logging.getLogger(__name__)
 
 # 单次 run 内允许的最大调用次数（C 报告 §3.10 + aigroup database_tool.py:15）
 _MAX_CALLS_PER_REQUEST = 3
@@ -39,14 +48,19 @@ class MockRow(BaseModel):
     month: str
 
 
-# query_database 业务 Tool：演示版 Mock 两阶段数据库问数（agent: package-c-v1）
+# query_database 业务 Tool：两阶段问数（agent: package-db-real-v4）
 class QueryDatabaseTool(BaseBusinessTool):
     """query_database Tool：两阶段问数（SQL 生成 → 数据返回）。
 
-    演示版：
+    演示版（默认无 adapter）：
     - step1：基于 question + datasource_id 生成固定 SELECT SQL 模板
     - step2：返回 3 行 mock 数据
     - 调用次数限制：单实例（per-run）累计 3 次后返回错误
+
+    Wave 4 真实模式（agent: package-db-real-v4）：
+    - 构造时传入 SQLiteAdapter / PostgresAdapter，进入真实模式
+    - step1 不变；step2 调 adapter.execute(sql, params)
+    - 真实模式失败 → 记 warn 日志 + 降级到默认 mock 路径
 
     严格只读：演示版 SQL 模板中所有语句都是 SELECT。
     """
@@ -86,7 +100,11 @@ class QueryDatabaseTool(BaseBusinessTool):
         "required": ["question", "datasource_id"],
     }
 
-    # 演示版入口（agent: package-c-v1）
+    # 初始化：可选注入 DatabaseAdapter（None = 默认 mock 模式）
+    def __init__(self, adapter: DatabaseAdapter | None = None) -> None:
+        self._adapter: DatabaseAdapter | None = adapter
+
+    # 演示版入口（agent: package-db-real-v4）
     async def invoke(self, params: dict[str, object]) -> ToolResult:
         try:
             p = QueryDatabaseParams.model_validate(params)
@@ -120,8 +138,8 @@ class QueryDatabaseTool(BaseBusinessTool):
         type(self)._call_count += 1
         # 阶段 1：生成 SQL
         sql = _mock_step1_generate_sql(p.question, p.datasource_id)
-        # 阶段 2：执行 SQL（演示版返回 mock 行）
-        rows, columns = _mock_step2_execute(sql, p.datasource_id)
+        # 阶段 2：执行 SQL（按 adapter 类型分支）
+        rows, columns, mode = await self._execute_step2(sql, p.datasource_id)
         return ToolResult(
             content=json.dumps(
                 {
@@ -131,10 +149,34 @@ class QueryDatabaseTool(BaseBusinessTool):
                     "datasource_id": p.datasource_id,
                     "stage": 2,
                     "call_count": type(self)._call_count,
+                    "mode": mode,
                 },
                 ensure_ascii=False,
             )
         )
+
+    # 阶段 2 执行：按 adapter 类型决定走真实 DB 或 mock（agent: package-db-real-v4）
+    async def _execute_step2(
+        self,
+        sql: str,
+        datasource_id: str,
+    ) -> tuple[list[dict[str, Any]], list[str], str]:
+        """返回 (rows, columns, mode)：mode ∈ {real, real_fallback, mock}。"""
+        # 仅 SQLite / Postgres 视为"真实 Adapter"（MockAdapter 走默认 mock 路径）
+        if isinstance(self._adapter, (SQLiteAdapter, PostgresAdapter)):
+            try:
+                rows = await self._adapter.execute(sql, {})
+                columns = list(rows[0].keys()) if rows else []
+                return rows, columns, "real"
+            except Exception as exc:  # noqa: BLE001 — 真实模式失败 → 降级到 mock
+                log.warning(
+                    "query_database real adapter failed, falling back to mock: %s", exc
+                )
+                rows, columns = _mock_step2_execute(sql, datasource_id)
+                return rows, columns, "real_fallback"
+        # 默认 mock 模式
+        rows, columns = _mock_step2_execute(sql, datasource_id)
+        return rows, columns, "mock"
 
     # 重置计数器（测试 / per-run 用）
     @classmethod
