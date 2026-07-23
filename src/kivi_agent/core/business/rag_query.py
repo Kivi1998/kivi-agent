@@ -1,26 +1,34 @@
-"""rag_query 业务 Tool（agent: package-c-v1）。
+"""rag_query 业务 Tool（agent: package-c-v1 + package-rag-real-v4）。
 
 按 docs/contracts/v1.md §1 决议：rag_query 单一 Tool 内部完成 rewrite + retrieval。
 旧名 rag_query_rewrite（独立 Tool）已弃用——C 报告 §3.3 + §3.4 明确指出
 rewrite 是 rag_query 的内部步骤，不能注册成独立 Tool。
 
-演示版 100% Mock：
-- 内部步骤：rewritten_query = query + " [refined]"（演示版简化）
-- 返回：answer + sources + rewritten_query
-- sources 至少 2 条 mock
-- 引用格式：<ref_json>{...}</ref_json> 收尾（按 C 报告 §3.6 复用 aigroup 格式）
+模式（WT-F1 / package-rag-real-v4）：
+- mock（默认）：保留现有 _mock_retrieval 逻辑，100% 离线
+- real：注入 RagKbClient，调 RagKbClient.search() 拿真实结果
+  - 成功：格式化 RagSearchResult 为与 mock 一致的 answer + sources + ref_json
+  - 失败（RagKbError）：记 warn 日志 + 自动降级到 mock（业务继续）
 
-未来切真 RAGFlow：替换 _mock_retrieval() + _format_citation() 实现。
+引用格式：<ref_json>{...}</ref_json> 收尾（按 C 报告 §3.6 复用 aigroup 格式）。
+
+未来切真 RAGFlow：替换 _mock_retrieval() + _format_citation() 实现（已由
+RagKbClient.search() 接管外部 HTTP 调用，mock 与 real 共用 _format_citation）。
 """
 
 from __future__ import annotations
 
 import json
+import logging
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
 from kivi_agent.core.business.base import BaseBusinessTool
+from kivi_agent.core.rag.client import RagKbClient, RagKbError
+from kivi_agent.core.rag.types import RagSearchResult
 from kivi_agent.core.tools.base import ToolResult
+
+log = logging.getLogger(__name__)
 
 
 # rag_query 输入参数（agent: package-c-v1）
@@ -45,6 +53,11 @@ class RagQueryTool(BaseBusinessTool):
 
     按 v1 §1 规则，rag_query_rewrite 不暴露为独立 Tool——它只是本 Tool 的内部步骤。
     演示版不调 RAGFlow，不发任何外部 HTTP 请求。category="read" 因为无副作用。
+
+    WT-F1 模式（agent: package-rag-real-v4）：
+    - 构造时注入 RagKbClient；client=None → mock 模式（默认）
+    - client 不为空 → real 模式：调 client.search() 拿真实结果
+    - real 模式失败（RagKbError）→ 记 warn 日志 + 降级到 mock（业务继续）
     """
 
     params_model = RagQueryParams
@@ -75,7 +88,12 @@ class RagQueryTool(BaseBusinessTool):
         "required": ["query"],
     }
 
-    # 演示版入口：参数校验 → rewrite → retrieval → 格式化（agent: package-c-v1）
+    # 初始化 Tool：可选注入 RagKbClient 走真实模式；不传则走 mock 模式
+    def __init__(self, client: RagKbClient | None = None) -> None:
+        # 真实模式：client 注入；mock 模式：client = None（默认）
+        self._client = client
+
+    # 入口：参数校验 → real 模式（可选）→ mock 模式（降级 + 默认）
     async def invoke(self, params: dict[str, object]) -> ToolResult:
         try:
             p = RagQueryParams.model_validate(params)
@@ -85,6 +103,40 @@ class RagQueryTool(BaseBusinessTool):
                 is_error=True,
                 error_type="schema_error",
             )
+        # real 模式（agent: package-rag-real-v4）：调 RagKbClient.search()，失败降级到 mock
+        if self._client is not None:
+            try:
+                return self._format_real_result(
+                    await self._client.search(
+                        query=p.query,
+                        kb_id=p.knowledge_base_id,
+                    ),
+                )
+            except RagKbError as e:
+                log.warning("rag-kb search failed, falling back to mock: %s", e)
+                # 降级：继续走下面的 mock 路径
+        # mock 模式（agent: package-c-v1）：演示版 100% 离线
+        return self._run_mock(p)
+
+    # 把 RagSearchResult 格式化成与 mock 一致的 answer + sources + ref_json 字段
+    def _format_real_result(self, result: RagSearchResult) -> ToolResult:
+        # 复用 mock 的 _format_citation：先转 MockSource（同 schema）
+        sources = [MockSource(**s.model_dump()) for s in result.sources]
+        answer_text, ref_json = _format_citation(result.rewritten_query, sources)
+        return ToolResult(
+            content=json.dumps(
+                {
+                    "answer": answer_text,
+                    "sources": [s.model_dump() for s in sources],
+                    "rewritten_query": result.rewritten_query,
+                    "ref_json": ref_json,
+                },
+                ensure_ascii=False,
+            )
+        )
+
+    # mock 模式的完整流程：rewrite → retrieval → format citation → 返回
+    def _run_mock(self, p: RagQueryParams) -> ToolResult:
         # 内部步骤 1：query rewrite（演示版简化，真实实现是 LLM 调用）
         rewritten_query = _mock_query_rewrite(p.query, p.knowledge_base_id)
         # 内部步骤 2：retrieval（演示版返回固定 2 条知识片段）
