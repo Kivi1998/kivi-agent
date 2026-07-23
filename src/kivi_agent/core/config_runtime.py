@@ -19,9 +19,11 @@ from typing import Any, Literal
 
 log = logging.getLogger(__name__)
 
-# TOML 合法值集合（rag / db mode）
+# TOML 合法值集合（rag / db mode / memory backend / embedding provider）
 _VALID_RAG_MODES = frozenset({"mock", "http"})
 _VALID_DB_MODES = frozenset({"mock", "sqlite", "postgres"})
+_VALID_MEMORY_BACKENDS = frozenset({"local", "vector"})
+_VALID_EMBEDDING_PROVIDERS = frozenset({"fake", "openai"})
 
 # 路径遍历保护基目录：缺省 = 当前工作目录
 _DEFAULT_BASE_DIR = Path(".")
@@ -54,6 +56,16 @@ class RuntimeConfig:
 
     # 切换
     auto_fallback: bool = True
+
+    # 长期记忆后端（agent: package-vector-memory-v61）
+    memory_backend: Literal["local", "vector"] = "local"
+    embedding_provider: Literal["fake", "openai"] = "fake"
+    embedding_dims: int = 384
+    embedding_model: str = "text-embedding-3-small"
+    es_url: str = "http://localhost:9200"
+    es_api_key: str = ""
+    openai_base_url: str = "https://api.openai.com"
+    openai_api_key: str = ""
 
     # 加载来源（追踪）：key -> "env:VAR" | "toml:path" | "default"
     sources: dict[str, str] = field(default_factory=dict)
@@ -184,6 +196,68 @@ def _apply_toml(config: RuntimeConfig, data: dict[str, Any], path: Path) -> None
         config.auto_fallback = val
         config.sources["auto_fallback"] = src
 
+    # [memory]（agent: package-vector-memory-v61）
+    mem = data.get("memory")
+    if isinstance(mem, dict):
+        if "backend" in mem:
+            val = mem["backend"]
+            if val not in _VALID_MEMORY_BACKENDS:
+                raise ValueError(
+                    f"config memory.backend must be one of {sorted(_VALID_MEMORY_BACKENDS)}, "
+                    f"got: {val!r}"
+                )
+            config.memory_backend = val
+            config.sources["memory_backend"] = src
+    # [embedding]
+    emb = data.get("embedding")
+    if isinstance(emb, dict):
+        if "provider" in emb:
+            val = emb["provider"]
+            if val not in _VALID_EMBEDDING_PROVIDERS:
+                raise ValueError(
+                    f"config embedding.provider must be one of "
+                    f"{sorted(_VALID_EMBEDDING_PROVIDERS)}, got: {val!r}"
+                )
+            config.embedding_provider = val
+            config.sources["embedding_provider"] = src
+        if "dims" in emb:
+            val = emb["dims"]
+            if not isinstance(val, int) or val <= 0:
+                raise ValueError("config embedding.dims must be a positive int")
+            config.embedding_dims = val
+            config.sources["embedding_dims"] = src
+        if "model" in emb:
+            val = emb["model"]
+            if not isinstance(val, str):
+                raise ValueError("config embedding.model must be a string")
+            config.embedding_model = val
+    # [openai]
+    openai = data.get("openai")
+    if isinstance(openai, dict):
+        if "base_url" in openai:
+            val = openai["base_url"]
+            if not isinstance(val, str):
+                raise ValueError("config openai.base_url must be a string")
+            config.openai_base_url = val
+        if "api_key" in openai:
+            val = openai["api_key"]
+            if not isinstance(val, str):
+                raise ValueError("config openai.api_key must be a string")
+            config.openai_api_key = val
+    # [es]
+    es = data.get("es")
+    if isinstance(es, dict):
+        if "url" in es:
+            val = es["url"]
+            if not isinstance(val, str):
+                raise ValueError("config es.url must be a string")
+            config.es_url = val
+        if "api_key" in es:
+            val = es["api_key"]
+            if not isinstance(val, str):
+                raise ValueError("config es.api_key must be a string")
+            config.es_api_key = val
+
 
 # 用 KIVI_* 环境变量覆盖 config（仅当变量已设置）
 def _apply_env(config: RuntimeConfig, env: dict[str, str]) -> None:
@@ -257,6 +331,52 @@ def _apply_env(config: RuntimeConfig, env: dict[str, str]) -> None:
         raw = env["KIVI_AUTO_FALLBACK"].lower()
         config.auto_fallback = raw in ("1", "true", "yes", "on")
         config.sources["auto_fallback"] = "env:KIVI_AUTO_FALLBACK"
+
+    # 长期记忆后端（agent: package-vector-memory-v61）
+    if "KIVI_MEMORY_BACKEND" in env:
+        val = env["KIVI_MEMORY_BACKEND"]
+        if val not in _VALID_MEMORY_BACKENDS:
+            raise ValueError(
+                f"KIVI_MEMORY_BACKEND must be one of {sorted(_VALID_MEMORY_BACKENDS)}, "
+                f"got: {val!r}"
+            )
+        config.memory_backend = val  # type: ignore[assignment]
+        config.sources["memory_backend"] = "env:KIVI_MEMORY_BACKEND"
+    if "KIVI_EMBEDDING_PROVIDER" in env:
+        val = env["KIVI_EMBEDDING_PROVIDER"]
+        if val not in _VALID_EMBEDDING_PROVIDERS:
+            raise ValueError(
+                f"KIVI_EMBEDDING_PROVIDER must be one of "
+                f"{sorted(_VALID_EMBEDDING_PROVIDERS)}, got: {val!r}"
+            )
+        config.embedding_provider = val  # type: ignore[assignment]
+        config.sources["embedding_provider"] = "env:KIVI_EMBEDDING_PROVIDER"
+    if "KIVI_EMBEDDING_DIMS" in env:
+        try:
+            v = int(env["KIVI_EMBEDDING_DIMS"])
+        except ValueError as exc:
+            raise ValueError(
+                f"KIVI_EMBEDDING_DIMS must be an integer, got: {env['KIVI_EMBEDDING_DIMS']!r}"
+            ) from exc
+        if v <= 0:
+            raise ValueError(f"KIVI_EMBEDDING_DIMS must be > 0, got: {v!r}")
+        config.embedding_dims = v
+        config.sources["embedding_dims"] = "env:KIVI_EMBEDDING_DIMS"
+    if "KIVI_EMBEDDING_MODEL" in env:
+        config.embedding_model = env["KIVI_EMBEDDING_MODEL"]
+        config.sources["embedding_model"] = "env:KIVI_EMBEDDING_MODEL"
+    if "KIVI_ES_URL" in env:
+        config.es_url = env["KIVI_ES_URL"]
+        config.sources["es_url"] = "env:KIVI_ES_URL"
+    if "KIVI_ES_API_KEY" in env:
+        config.es_api_key = env["KIVI_ES_API_KEY"]
+        config.sources["es_api_key"] = "env:KIVI_ES_API_KEY"
+    if "KIVI_OPENAI_BASE_URL" in env:
+        config.openai_base_url = env["KIVI_OPENAI_BASE_URL"]
+        config.sources["openai_base_url"] = "env:KIVI_OPENAI_BASE_URL"
+    if "KIVI_OPENAI_API_KEY" in env:
+        config.openai_api_key = env["KIVI_OPENAI_API_KEY"]
+        config.sources["openai_api_key"] = "env:KIVI_OPENAI_API_KEY"
 
 
 __all__ = ["ConfigRuntime", "RuntimeConfig"]

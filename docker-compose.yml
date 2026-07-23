@@ -1,0 +1,35 @@
+# kivi-agent Wave 6.1 长期记忆 + 向量检索 docker-compose（agent: package-vector-memory-v61）
+#
+# 启动：docker-compose up -d
+# 停止：docker-compose down
+# 验证：curl http://localhost:9200/_cluster/health
+#
+# 端口：9200（HTTP）— 与 ES 默认端口一致；本机已有 ES 时先停掉或改 ports 映射
+# 安全：xpack.security.enabled=false（开发用；生产应配证书 + 鉴权）
+# 堆内存：-Xms1g -Xmx1g（适配 knn_vector 索引的 HNSW 图加载）
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    container_name: kivi-agent-es
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      # 用 ES 自带 _cluster/health 探活；2s 间隔，3 次失败后标 unhealthy
+      test: ["CMD-SHELL", "curl -fsS http://localhost:9200/_cluster/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  # 数据卷：开发用，重启不丢；生产应配远程持久化
+  es_data:
