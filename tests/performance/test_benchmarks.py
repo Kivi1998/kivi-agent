@@ -28,7 +28,7 @@ import pytest
 
 from kivi_agent.core.config import KamaConfig
 from kivi_agent.core.events.bus import EventBus
-from kivi_agent.core.llm.types import LlmResponse, ToolCallBlock
+from kivi_agent.core.llm.types import LlmResponse
 from kivi_agent.core.runner import AgentRunner
 from kivi_agent.eval.team.models import TeamCase, TeamDataset
 from kivi_agent.eval.team.team_runner import TeamRunner

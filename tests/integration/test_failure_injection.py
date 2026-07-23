@@ -248,7 +248,7 @@ async def test_subagent_failure(tmp_path: Path) -> None:
         task, _ctx = entry
         try:
             await asyncio.wait_for(task, timeout=2.0)
-        except (asyncio.TimeoutError, asyncio.CancelledError):
+        except (TimeoutError, asyncio.CancelledError):
             task.cancel()
 
 
