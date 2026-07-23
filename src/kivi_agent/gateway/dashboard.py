@@ -156,26 +156,26 @@ def build_dashboard_router() -> APIRouter:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"run not found: {run_id}",
             )
-        # 懒导入：依赖 WT-G1 (EvalCase/EvalDataset) + WT-G2 (compute_all_metrics)
+        # 懒导入：依赖 WT-G1 (EvalCase/EvalDataset/EvalResult) + WT-G2 (compute_all_metrics)
         try:
-            from kivi_agent.eval.dataset import (  # type: ignore[import-not-found]
-                EvalCase,
-                EvalDataset,
-            )
-            from kivi_agent.eval.metrics.report import (  # type: ignore[import-not-found]
-                compute_all_metrics,
-            )
+            from kivi_agent.eval.dataset import EvalCase, EvalDataset
+            from kivi_agent.eval.result import EvalResult
+            from kivi_agent.eval.metrics.report import compute_all_metrics
         except ImportError as exc:
             raise HTTPException(
                 status_code=status.HTTP_501_NOT_IMPLEMENTED,
                 detail=f"metrics module not available: {exc}",
             ) from exc
+        eval_results = [EvalResult.model_validate(r) for r in results]
         cases = [
-            EvalCase(id=r.get("case_id", ""), goal=r.get("final_answer") or "(unknown)")
+            EvalCase(
+                id=r.get("case_id", ""),
+                goal=r.get("final_answer") or "(unknown)",
+            )
             for r in results
         ]
         dataset = EvalDataset(name=run_id, cases=cases)
-        report = compute_all_metrics(dataset, results)
+        report = compute_all_metrics(dataset, eval_results)
         result_dict: dict[str, Any] = report.to_dict()
         return result_dict
 

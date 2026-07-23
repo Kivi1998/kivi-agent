@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING, Any
 # WT-G1 提供 EvalDataset / EvalResult；本 worktree 未合入故 type: ignore
 # 集成时 WT-G1 合并后可移除 type: ignore
 if TYPE_CHECKING:
-    from kivi_agent.eval.dataset import EvalDataset  # type: ignore[import-not-found]
-    from kivi_agent.eval.result import EvalResult  # type: ignore[import-not-found]
+    from kivi_agent.eval.dataset import EvalDataset
+    from kivi_agent.eval.result import EvalResult
 
 
 class Metric(ABC):

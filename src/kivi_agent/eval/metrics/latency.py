@@ -7,8 +7,8 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from kivi_agent.eval.dataset import EvalDataset  # type: ignore[import-not-found]
-    from kivi_agent.eval.result import EvalResult  # type: ignore[import-not-found]
+    from kivi_agent.eval.dataset import EvalDataset
+    from kivi_agent.eval.result import EvalResult
 
 from kivi_agent.eval.metrics.base import Metric
 
