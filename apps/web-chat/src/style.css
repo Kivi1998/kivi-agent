@@ -1,0 +1,24 @@
+/* 基础样式：仅 reset + 字体；业务样式由组件 scoped 样式负责 */
+:root {
+  --route-panel-color: #06b6d4;
+  --citation-color: #06b6d4;
+  --chart-color: #d946ef;
+  --muted-color: #6b7280;
+  --border-radius: 8px;
+  --panel-padding: 12px 14px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #1f2937;
+  background: #f9fafb;
+}
