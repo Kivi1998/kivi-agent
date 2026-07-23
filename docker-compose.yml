@@ -1,35 +1,225 @@
-# kivi-agent Wave 6.1 长期记忆 + 向量检索 docker-compose（agent: package-vector-memory-v61）
+# =====================================================================
+# kivi-agent Wave 7 WT-K1：3 模式 Docker Compose
+# =====================================================================
 #
-# 启动：docker-compose up -d
-# 停止：docker-compose down
-# 验证：curl http://localhost:9200/_cluster/health
+# 模式（profile）：
+#   minimal  — 只起 kivi-core 守护进程（无外部依赖）
+#              docker compose --profile minimal up -d
+#   web      — minimal + kivi-gateway (FastAPI) + chatbox-frontend (Vue 3)
+#              docker compose --profile web up -d
+#   full     — web + elasticsearch + redis + evaluation-exporter
+#              docker compose --profile full up -d
 #
-# 端口：9200（HTTP）— 与 ES 默认端口一致；本机已有 ES 时先停掉或改 ports 映射
-# 安全：xpack.security.enabled=false（开发用；生产应配证书 + 鉴权）
-# 堆内存：-Xms1g -Xmx1g（适配 knn_vector 索引的 HNSW 图加载）
+# 端口（与 .env.example 同步）：
+#   7437  kivi-core 守护进程
+#   8000  kivi-gateway (FastAPI)
+#   5173  chatbox-frontend (Vite dev)
+#   9200  elasticsearch (full profile)
+#   6379  redis (full profile)
+#
+# 健康检查：
+#   每个 service 配 healthcheck；start.sh --wait 等所有 healthy 才返回
+#
+# 数据卷：
+#   es_data (named volume) — ES 持久化
+#   redis_data (named volume) — Redis 持久化
+#   ./logs (host bind) — 容器日志（与 ~/.kivi/logs 共享）
+# =====================================================================
+
+# 公共网络：所有服务在同一 network，用服务名互访
+networks:
+  kivi-net:
+    driver: bridge
+
+x-logging: &default-logging
+  # 所有服务统一把日志写到主机 ./logs 目录（便于 scripts/health_check.sh 排查）
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
 
 services:
+  # ─────────────────────────────────────────────────────────────────
+  # [minimal] kivi-core 守护进程（最小组件）
+  # ─────────────────────────────────────────────────────────────────
+  core:
+    profiles: ["minimal", "web", "full"]
+    build:
+      context: .
+      dockerfile: docker/core.Dockerfile
+    image: kivi-agent-core:wave7
+    container_name: kivi-core
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # .env 未设时回退到这些默认值（与 .env.example 对齐）
+      KAMA_HOST: 0.0.0.0
+      KAMA_PORT: 7437
+      KAMA_LOG_LEVEL: ${KAMA_LOG_LEVEL:-INFO}
+      KAMA_LOG_FILE: /var/log/kivi/core.log
+    ports:
+      - "127.0.0.1:7437:7437"   # 仅本机访问（loopback 安全默认）
+    volumes:
+      # 主机 ./logs 挂到容器 /var/log/kivi，便于 host 直接看日志
+      - ./logs/core:/var/log/kivi
+      # kivi-core 持久化目录（trace / memory / config / eval 数据）
+      - kivi-core-data:/root/.kivi
+    healthcheck:
+      # 用 kivi-core 自己的 ping 命令探活（轻量、无副作用）
+      # 设计：10s 间隔；start_period 30s 让 daemon 完成初始化
+      test: ["CMD", "kivi-core", "--version"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    logging: *default-logging
+    networks:
+      - kivi-net
+
+  # ─────────────────────────────────────────────────────────────────
+  # [web] kivi-gateway (FastAPI) — Web 模式启用
+  # ─────────────────────────────────────────────────────────────────
+  gateway:
+    profiles: ["web", "full"]
+    build:
+      context: .
+      dockerfile: docker/gateway.Dockerfile
+    image: kivi-agent-gateway:wave7
+    container_name: kivi-gateway
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      KAMA_HOST: core          # 服务名寻址（同 network）
+      KAMA_PORT: 7437
+      KIVI_GATEWAY_HOST: 0.0.0.0
+      KIVI_GATEWAY_PORT: 8000
+    ports:
+      - "127.0.0.1:8000:8000"   # 前端 Vite 代理 / curl 都走 8000
+    depends_on:
+      core:
+        condition: service_healthy
+    healthcheck:
+      # Gateway 自带 /health 端点（gateway/main.py）
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+    logging: *default-logging
+    networks:
+      - kivi-net
+
+  # ─────────────────────────────────────────────────────────────────
+  # [web] chatbox-frontend (Vue 3 + Vite) — Web 模式启用
+  # ─────────────────────────────────────────────────────────────────
+  chatbox-frontend:
+    profiles: ["web", "full"]
+    build:
+      context: ./apps/web-chat
+      dockerfile: ../../docker/chatbox.Dockerfile
+    image: kivi-agent-chatbox:wave7
+    container_name: kivi-chatbox
+    restart: unless-stopped
+    environment:
+      # Vite dev server 监听地址（容器内 0.0.0.0:5173）
+      VITE_API_PROXY_TARGET: http://gateway:8000
+      VITE_WS_PROXY_TARGET: ws://gateway:8000
+    ports:
+      - "127.0.0.1:5173:5173"
+    depends_on:
+      gateway:
+        condition: service_healthy
+    healthcheck:
+      # Vite dev server 根路径返回 HTML 即视为健康
+      test: ["CMD", "wget", "-qO-", "http://localhost:5173/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    logging: *default-logging
+    networks:
+      - kivi-net
+
+  # ─────────────────────────────────────────────────────────────────
+  # [full] elasticsearch (Vector Memory 后端) — 仅 full 模式
+  # ─────────────────────────────────────────────────────────────────
   elasticsearch:
+    profiles: ["full"]
     image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
     container_name: kivi-agent-es
     environment:
       - discovery.type=single-node
-      - xpack.security.enabled=false
+      - xpack.security.enabled=false      # dev 默认；生产应配证书 + 鉴权
       - xpack.security.http.ssl.enabled=false
-      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g       # 适配 knn_vector HNSW 加载
     ports:
-      - "9200:9200"
+      - "127.0.0.1:9200:9200"            # 仅本机访问（安全默认）
     volumes:
       - es_data:/usr/share/elasticsearch/data
     healthcheck:
-      # 用 ES 自带 _cluster/health 探活；2s 间隔，3 次失败后标 unhealthy
+      # ES 自带 _cluster/health 探活；2s 间隔，3 次失败后标 unhealthy
       test: ["CMD-SHELL", "curl -fsS http://localhost:9200/_cluster/health || exit 1"]
       interval: 5s
       timeout: 3s
       retries: 5
       start_period: 20s
-    restart: unless-stopped
+    logging: *default-logging
+    networks:
+      - kivi-net
 
+  # ─────────────────────────────────────────────────────────────────
+  # [full] redis (EvalEmitter Streams 后端) — 仅 full 模式
+  # ─────────────────────────────────────────────────────────────────
+  redis:
+    profiles: ["full"]
+    image: redis:7-alpine
+    container_name: kivi-agent-redis
+    command: ["redis-server", "--appendonly", "yes"]   # 持久化
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      # redis-cli ping 返回 PONG 即健康
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    logging: *default-logging
+    networks:
+      - kivi-net
+
+  # ─────────────────────────────────────────────────────────────────
+  # [full] evaluation-exporter (Wave 7 占位：订阅 Redis Streams → 控制台)
+  # ─────────────────────────────────────────────────────────────────
+  # 功能：从 Redis eval:trace stream 读取事件，做离线评估（Wave 7+）
+  # 当前阶段只起一个 tail 容器，确认 stream 有数据即可；后续接 evaluation 套件
+  evaluation-exporter:
+    profiles: ["full"]
+    image: redis:7-alpine
+    container_name: kivi-eval-exporter
+    depends_on:
+      redis:
+        condition: service_healthy
+    entrypoint: ["sh", "-c"]
+    # 启动后每秒 XLEN + 末条 XREVRANGE，便于 scripts/health_check.sh 验证
+    command:
+      - |
+        "while true; do
+           echo \"[$(date -u +%FT%TZ)] stream=eval:trace xlen=$$(redis-cli -h redis XLEN eval:trace)\";
+           sleep 5;
+         done"
+    logging: *default-logging
+    networks:
+      - kivi-net
+
+# 公共卷：ES / Redis / core 持久化
 volumes:
-  # 数据卷：开发用，重启不丢；生产应配远程持久化
   es_data:
+    driver: local
+  redis_data:
+    driver: local
+  kivi-core-data:
+    driver: local

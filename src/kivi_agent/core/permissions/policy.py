@@ -85,6 +85,8 @@ DEFAULT_POLICIES: dict[str, ToolPolicy] = {
     "memory_save":    ToolPolicy(default=PermissionDecision.ASK),
     # memory_recall（agent: package-c-v1）
     "memory_recall":  ToolPolicy(default=PermissionDecision.ALLOW),
+    # map_load（agent: package-demo-v7）：前端地图 Tool，只读 GET，演示版默认放行
+    "map_load":       ToolPolicy(default=PermissionDecision.ALLOW),
 }
 
 # 未在 DEFAULT_POLICIES 中登记的工具的兜底策略
