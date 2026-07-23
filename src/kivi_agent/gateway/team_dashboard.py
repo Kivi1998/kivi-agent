@@ -257,7 +257,9 @@ def build_team_dashboard_router() -> APIRouter:
             )
         # 懒导入：依赖 H1 (TeamEvalResult) + H1 metrics.team
         try:
-            from kivi_agent.eval.metrics.team import compute_team_metrics  # type: ignore[import-not-found]
+            from kivi_agent.eval.metrics.team import (  # type: ignore[import-not-found]
+                compute_team_metrics,
+            )
             from kivi_agent.eval.team.models import TeamEvalResult  # type: ignore[import-not-found]
         except ImportError as exc:
             raise HTTPException(

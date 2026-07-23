@@ -24,7 +24,6 @@ from pydantic import BaseModel
 
 from kivi_agent.eval.team_store import TeamResultStore
 
-
 # ---- Mock 数据模型 ---------------------------------------------------------
 
 

@@ -19,7 +19,6 @@ FastAPI 暴露 Coding 数据 API：
 from __future__ import annotations
 
 import logging
-from datetime import datetime
 from typing import Any, TypedDict, cast
 
 from fastapi import APIRouter, HTTPException, Query, status
@@ -251,8 +250,12 @@ def build_coding_dashboard_router() -> APIRouter:
             )
         # 懒导入：依赖 H2 (CodingEvalResult) + H2 metrics.coding
         try:
-            from kivi_agent.eval.coding.models import CodingEvalResult  # type: ignore[import-not-found]
-            from kivi_agent.eval.metrics.coding import compute_coding_metrics  # type: ignore[import-not-found]
+            from kivi_agent.eval.coding.models import (  # type: ignore[import-not-found]
+                CodingEvalResult,
+            )
+            from kivi_agent.eval.metrics.coding import (  # type: ignore[import-not-found]
+                compute_coding_metrics,
+            )
         except ImportError as exc:
             raise HTTPException(
                 status_code=status.HTTP_501_NOT_IMPLEMENTED,

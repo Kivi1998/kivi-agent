@@ -25,7 +25,6 @@ from pydantic import BaseModel
 
 from kivi_agent.eval.coding_store import CodingResultStore
 
-
 # ---- Mock 数据模型 ---------------------------------------------------------
 
 
