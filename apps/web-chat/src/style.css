@@ -2,7 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 业务组件 CSS 变量（WT-E3 贡献） */
+:root {
+  --route-panel-color: #06b6d4;
+  --citation-color: #06b6d4;
+  --chart-color: #d946ef;
+  --muted-color: #6b7280;
+  --border-radius: 8px;
+  --panel-padding: 12px 14px;
+}
+
 /* 全局暗色主题（与 TUI 一致） */
+* {
+  box-sizing: border-box;
+}
+
 html,
 body,
 #app {
