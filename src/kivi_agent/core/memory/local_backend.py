@@ -48,6 +48,16 @@ class LocalMemoryBackend:
                 break
         return results
 
+    # 遍历存储目录下所有 .md 文件，解析为 MemoryItem 列表
+    async def list_all(self) -> list[MemoryItem]:
+        items: list[MemoryItem] = []
+        for path in sorted(self.root.glob("*.md")):
+            item = self._parse(path)
+            if item is None:
+                continue
+            items.append(item)
+        return items
+
     # 按 id 覆盖写入；id 不变
     async def update(self, memory_id: str, memory: MemoryItem) -> None:
         await self.write(memory)

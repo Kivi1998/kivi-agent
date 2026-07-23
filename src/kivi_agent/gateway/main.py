@@ -485,6 +485,13 @@ def _register_routes(app: FastAPI) -> None:
 
     app.include_router(build_coding_dashboard_router())
 
+    # Wave 6.1 Memory Dashboard（agent: package-dashboard-api-v61）
+    # 新增 /api/memory/* 8 端点：复用 MemoryItemStore（统一 Local/Vector 入口）
+    # 依赖：J1 (VectorMemoryBackend) + J2 (MemoryLifecycle/MemoryAuditLogger) 懒导入
+    from kivi_agent.gateway.memory_dashboard import build_memory_dashboard_router
+
+    app.include_router(build_memory_dashboard_router())
+
     @app.websocket("/sessions/{session_id}/ws")
     async def session_events_ws(
         session_id: str,

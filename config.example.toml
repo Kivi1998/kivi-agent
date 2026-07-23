@@ -41,3 +41,41 @@ timeout_s = 3.0
 "claude-sonnet-4-6" = [0.003, 0.015]
 "claude-haiku-4-5" = [0.0008, 0.004]
 "gpt-4o" = [0.005, 0.015]
+
+# 长期记忆后端（agent: package-vector-memory-v61）
+# 真实服务不可用时是否自动 fallback 到 Local（true / false）
+memory_auto_fallback = true
+
+[memory]
+# 后端选择：
+#   local   — 本地 Markdown 文件（默认；不依赖外部服务）
+#   vector  — Elasticsearch 向量检索（需 [es] 段配置）
+backend = "local"
+
+[embedding]
+# Embedding 实现：
+#   fake    — 离线 SHA-512 伪随机（默认；演示/单测）
+#   openai  — OpenAI 兼容 /v1/embeddings
+provider = "fake"
+# 向量维度（与 ES 索引 mapping 强一致；text-embedding-3-small 支持 256/512/1024/1536/3072）
+dims = 384
+# Embedding 模型名（仅 provider=openai 时生效）
+model = "text-embedding-3-small"
+
+[openai]
+# OpenAI 兼容 Embedding API 地址（也可用 ANTHROPIC_BASE_URL 共用代理）
+# base_url = "https://api.openai.com"
+# OpenAI 兼容 API key（也可用 ANTHROPIC_API_KEY 复用）
+# api_key = "sk-..."
+
+[es]
+# Elasticsearch 8.x 服务地址
+url = "http://localhost:9200"
+# ES API Key（开发模式可留空；生产建议配）
+# api_key = ""
+# 向量索引名（VectorMemoryBackend 写入位置）
+index = "kivi-memories"
+# 审计事件独立索引
+audit_index = "kivi-memory-audit"
+# ES 请求超时（秒）
+timeout_s = 5.0

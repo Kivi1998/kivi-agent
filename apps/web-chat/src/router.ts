@@ -1,4 +1,4 @@
-// Vue Router 配置：2 个 chat 路由 + 3 个 dashboard 路由（WT-G4） + 6 个新 dashboard 路由（WT-H4）
+// Vue Router 配置：2 个 chat 路由 + 3 个 dashboard 路由（WT-G4） + 6 个新 dashboard 路由（WT-H4） + 1 个 memory dashboard 路由（WT-J4）
 
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import SessionListView from '@/views/SessionList.vue'
@@ -12,6 +12,8 @@ import TeamDashboardDetail from '@/views/TeamDashboardDetail.vue'
 import TeamCaseDetail from '@/views/TeamCaseDetail.vue'
 import CodingDashboard from '@/views/CodingDashboard.vue'
 import CodingDashboardDetail from '@/views/CodingDashboardDetail.vue'
+// Wave 6.1 WT-J4：前端记忆管理 UI
+import MemoryDashboard from '@/views/MemoryDashboard.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -71,6 +73,12 @@ const routes: RouteRecordRaw[] = [
     name: 'coding-dashboard-detail',
     component: CodingDashboardDetail,
     props: true
+  },
+  // --- Wave 6.1 WT-J4: 记忆管理 dashboard 路由 ---
+  {
+    path: '/dashboard/memory',
+    name: 'memory-dashboard',
+    component: MemoryDashboard
   }
 ]
 
