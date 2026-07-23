@@ -7,9 +7,12 @@
 本包仅定义"kivi-agent → rag-kb"的契约；rag-kb 服务本身在外部仓库，不在本仓维护。
 """
 
+from kivi_agent.core.rag.client import RagKbClient, RagKbError
 from kivi_agent.core.rag.types import RagSearchResult, RagSource
 
 __all__ = [
+    "RagKbClient",
+    "RagKbError",
     "RagSearchResult",
     "RagSource",
 ]
