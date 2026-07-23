@@ -1,25 +1,49 @@
+# ── Secrets & local env (Wave 7 WT-K1: 防真 API key / 密码 / 内部地址被提交) ──
+# 设计：所有 .env* 形式（含 .env / .env.local / .env.production）均不追踪
 .env
+.env.*
+!.env.example
+# 真实密钥/凭据常见后缀（双保险：即便误命名为 .env.bak / .secrets 等也能拦下）
+*.env.bak
+*.env.local
+*.secrets
+credentials.json
+# 私钥 / 证书 / SSH key（一旦提交必须立刻 rotate）
+*.pem
+*.key
+*.crt
+id_rsa
+id_ed25519
+~/.ssh/
+
+# ── Python toolchain ───────────────────────────────────────────
 .venv/
 __pycache__/
 *.pyc
 *.pyo
-runs/
-dist/
-build/
 *.egg-info/
 .mypy_cache/
 .ruff_cache/
 .pytest_cache/
-.vscode/
-uv.lock
-.idea/
-.DS_Store
-*.log
+
+# ── Local runtime artifacts (Wave 6.1 引入 ~/.kama/，Wave 7 加入 ~/.kivi/) ──
+.kama/
+.kivi/
 workspace/
 !core/workspace/
 !core/workspace/**
+runs/
+dist/
+build/
+*.log
 
-# Frontend (apps/web-chat) — Wave 3 added
+# ── Editor / OS ────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+uv.lock
+
+# ── Frontend (apps/web-chat) — Wave 3 added ────────────────────
 node_modules/
 package-lock.json
 apps/web-chat/dist/
