@@ -4,7 +4,6 @@ import asyncio
 import logging
 import os
 from collections.abc import AsyncIterator
-from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
@@ -15,10 +14,14 @@ from kivi_agent.core.bus.events import LlmModelSelectedEvent, LlmTokenEvent, Llm
 from kivi_agent.core.events.bus import EventBus
 from kivi_agent.core.llm.catalog import context_window_for
 from kivi_agent.core.llm.errors import (
+    CompletionResult,
     LLMError,
     LLMRateLimitError,
     LLMTimeoutError,
     LLMUnavailableError,
+    StreamChunk,
+    TokenUsage,
+    ToolCall,
 )
 from kivi_agent.core.llm.types import LlmResponse, ToolCallBlock, UsageStats
 
@@ -71,18 +74,18 @@ def _is_retryable(exc: BaseException) -> bool:
 # 从 anthropic Message 对象构造 CompletionResult
 def _to_completion_result(response: Any, fallback_model: str) -> CompletionResult:
     content_parts: list[str] = []
-    tool_calls: list[dict[str, object]] = []
+    tool_calls: list[ToolCall] = []
     for block in response.content:
         btype = getattr(block, "type", None)
         if btype == "text":
             content_parts.append(getattr(block, "text", "") or "")
         elif btype == "tool_use":
             tool_calls.append(
-                {
-                    "id": getattr(block, "id", "") or "",
-                    "name": getattr(block, "name", "") or "",
-                    "input": dict(getattr(block, "input", {}) or {}),
-                }
+                ToolCall(
+                    id=getattr(block, "id", "") or "",
+                    name=getattr(block, "name", "") or "",
+                    arguments=dict(getattr(block, "input", {}) or {}),
+                )
             )
     usage_obj = response.usage
     usage = TokenUsage(
@@ -96,36 +99,6 @@ def _to_completion_result(response: Any, fallback_model: str) -> CompletionResul
         stop_reason=str(getattr(response, "stop_reason", "end_turn") or "end_turn"),
         model=str(getattr(response, "model", fallback_model) or fallback_model),
     )
-
-
-@dataclass
-class TokenUsage:
-    # LLM 调用的 token 计数（input / output / total）
-    input_tokens: int
-    output_tokens: int
-
-    # 返回 input + output 合计 token 数
-    @property
-    def total_tokens(self) -> int:
-        return self.input_tokens + self.output_tokens
-
-
-@dataclass
-class CompletionResult:
-    # LLM complete() 调用的归一化结果
-    content: str
-    tool_calls: list[dict[str, object]]
-    usage: TokenUsage
-    stop_reason: str
-    model: str
-
-
-@dataclass
-class StreamChunk:
-    # LLM stream_complete() 增量输出单元；最后一个 chunk 携带 usage 并标 done=True
-    delta: str
-    usage: TokenUsage | None
-    done: bool
 
 
 class AnthropicProvider:
@@ -346,16 +319,16 @@ class AnthropicProvider:
             try:
                 async with self._client.messages.stream(**payload) as stream:
                     async for text in stream.text_stream:
-                        yield StreamChunk(delta=text, usage=None, done=False)
+                        yield StreamChunk(content=text)
                     final = await stream.get_final_message()
                     usage_obj = final.usage
                     yield StreamChunk(
-                        delta="",
+                        content="",
+                        finish_reason="stop",
                         usage=TokenUsage(
                             input_tokens=int(getattr(usage_obj, "input_tokens", 0) or 0),
                             output_tokens=int(getattr(usage_obj, "output_tokens", 0) or 0),
                         ),
-                        done=True,
                     )
                     return
             except TimeoutError as exc:
