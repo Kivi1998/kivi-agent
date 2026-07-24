@@ -95,3 +95,11 @@ markers = [
 # - 安全基线: KIVI_RUN_SECURITY=1
 # 普通 `uv run pytest` 不会跑这 3 类；CI / 演示需要时显式打开 env
 # （参见 tests/integration/test_failure_injection.py / tests/performance/test_benchmarks.py / tests/security/test_security_baseline.py）
+#
+# Wave 8.2 WT-L3：真实 LLM E2E 框架默认跳过（KIVI_RUN_E2E=1 才跑，避免无 key 时误扣 token）
+# - KIVI_RUN_E2E=1: 启用所有 e2e_real 测试（5 demo + 5 eval case）
+# - KIVI_E2E_PROVIDER=anthropic|openai: 选 provider（默认 anthropic）
+# - KIVI_E2E_MAX_CASES=N: 限制 eval case 数（默认 5，防 token 失控）
+# - KIVI_E2E_REPORT_DIR=path: 报告输出目录（默认 reports/e2e_real/）
+# 跑法：KIVI_RUN_E2E=1 KIVI_E2E_PROVIDER=anthropic uv run pytest tests/e2e_real -q
+# （参见 tests/e2e_real/conftest.py / tests/e2e_real/README.md）
