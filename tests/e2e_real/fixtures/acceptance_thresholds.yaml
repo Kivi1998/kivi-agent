@@ -1,0 +1,78 @@
+# 真实 LLM E2E 接受阈值（agent: package-e2e-real-w82）
+#
+# 每个 demo 的最低验收门槛：output_quality_score >= min_quality + success=True
+# 真实 LLM 输出不稳定，用宽松阈值；不卡具体字符串。
+#
+# 字段约定：
+#   min_quality: 人工评分 0-5 的最低接受值
+#   max_latency_seconds: 单 case 最长允许延迟
+#   max_cost_usd: 单 case 最长允许 USD 成本（防失控）
+#   require_success: success 字段必须为 True
+#   min_total_tokens: 至少这么多 token（验证确实调了 LLM）
+
+demo1_coding:
+  min_quality: 4
+  max_latency_seconds: 60
+  max_cost_usd: 0.10
+  require_success: true
+  min_total_tokens: 100
+
+demo2_rag:
+  min_quality: 3
+  max_latency_seconds: 30
+  max_cost_usd: 0.05
+  require_success: true
+  min_total_tokens: 50
+  # 真实 RAG source_count 至少 1
+  extra_checks:
+    has_source_id: true
+    has_ref_json: true
+    source_count_min: 1
+
+demo3_database:
+  min_quality: 3
+  max_latency_seconds: 30
+  max_cost_usd: 0.05
+  require_success: true
+  min_total_tokens: 50
+  # 期望 Q1 总营收 = 44500（硬性）
+  extra_checks:
+    expected_q1_revenue: 44500
+    row_count_min: 10
+    chart_must_have_series: true
+
+demo4_frontend_map:
+  min_quality: 3
+  max_latency_seconds: 60
+  max_cost_usd: 0.05
+  require_success: true
+  min_total_tokens: 50
+  # 真实模式下至少 1 个 URL 成功
+  extra_checks:
+    ok_count_min: 1
+    features_count_min: 1
+    bbox_required: true
+
+demo5_multi_agent:
+  min_quality: 4
+  max_latency_seconds: 120
+  max_cost_usd: 0.30
+  require_success: true
+  min_total_tokens: 200
+  # 综合报告 + ECharts
+  extra_checks:
+    report_sections_min: 4
+    chart_series_min: 1
+    rag_sources_min: 1
+    web_results_min: 1
+
+eval_routing:
+  min_quality: 3
+  max_latency_seconds: 30
+  max_cost_usd: 0.05
+  require_success: true
+  min_total_tokens: 50
+  # 路由决策必须等于 expected_route
+  extra_checks:
+    route_match_required: true
+    tool_subset_required: true

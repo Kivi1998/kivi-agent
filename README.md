@@ -129,6 +129,83 @@ curl -fsS http://localhost:9200/_cluster/health
 curl -fsS 'http://127.0.0.1:8000/api/memory/search?query=hello'
 ```
 
+## Quick Start：Real LLM（Wave 8.2 新增）
+
+> **本节定位**：用户 export 真实 LLM key 后，**3 行命令**跑通 5 demo + 5 eval case 端到端。
+> **核心原则**：默认**全部跳过**（env guard `KIVI_RUN_E2E=1` 才跑），**不主动扣 token**。
+> **完整指南**：[docs/e2e-real/README.md](./docs/e2e-real/README.md)
+
+### 选一种 key 接入
+
+```bash
+# 选项 1：官方 Anthropic（推荐）
+export KIVI_ANTHROPIC_API_KEY=sk-ant-api03-xxxxxxxxxxxx
+
+# 选项 2：OpenAI 官方
+# export KIVI_OPENAI_API_KEY=sk-proj-xxxxxxxxxxxx
+# export KIVI_OPENAI_MODEL=gpt-4o-mini
+
+# 选项 3：DeepSeek（最便宜，约 Anthropic 1/30）
+# export KIVI_ANTHROPIC_API_KEY=sk-deepseek-xxxxxxxxxxxx
+# export KIVI_ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic
+# export KIVI_LLM_DEFAULT_MODEL=deepseek-chat
+```
+
+### 一行命令跑真 LLM
+
+```bash
+# 启用真实 LLM 测试 + 限制 case 数量（防 token 失控）
+export KIVI_RUN_E2E=1
+export KIVI_E2E_PROVIDER=anthropic   # 或 openai
+export KIVI_E2E_MAX_CASES=5
+
+# 跑 5 demo + 5 eval case
+uv run pytest tests/e2e_real -q
+
+# 报告输出到 reports/e2e_real/（JSON + Markdown 双格式）
+ls -la reports/e2e_real/
+# → real_llm_run_20260723_143021.json
+# → real_llm_run_20260723_143021.md
+```
+
+### 报告样例（Markdown）
+
+```markdown
+## 汇总
+
+| 指标 | 值 |
+|---|---|
+| Provider | anthropic |
+| Model | claude-sonnet-4-6 |
+| Total Cases | 10 |
+| Success Rate | 100% (10/10) |
+| Total Tokens | 12,345 |
+| Total Cost (USD) | $0.0876 |
+| Avg Latency | 3.42s |
+```
+
+### 简历引用
+
+跑完后复制 [docs/e2e-real/RESULTS_TEMPLATE.md](./docs/e2e-real/RESULTS_TEMPLATE.md) → 填实际数据 → 改名为 `RESULTS.md` → 提交到仓库。
+
+```markdown
+## Real LLM End-to-End Results
+
+> **项目**：kivi-agent
+> **Wave 8.2**：用 anthropic claude-sonnet-4-6 跑通 5 demo + 5 eval case（10/10 通过）
+> **端到端延迟**：3.42 秒/case
+> **Token 成本**：$0.0876 / 全量 10 case
+> **复现**：`KIVI_RUN_E2E=1 uv run pytest tests/e2e_real -q`
+```
+
+### 详细文档
+
+- **[docs/e2e-real/README.md](./docs/e2e-real/README.md)**：完整指南（3 种 key 接入 + 怎么跑 + 怎么读 + 怎么控制成本 + 故障排查 + 架构）
+- **[docs/e2e-real/RESULTS_TEMPLATE.md](./docs/e2e-real/RESULTS_TEMPLATE.md)**：报告模板（跑完后填，简历可引用）
+- **[RUNBOOK.md §4 真实 LLM 端到端](./RUNBOOK.md#4-真实-llm-端到端wave-82-新增)**：运维视角的操作手册
+
+---
+
 ## 5 演示用例（端到端可重跑）
 
 | # | 演示 | 能力 | 文档 |
@@ -237,10 +314,11 @@ cd apps/web-chat && npm test
 ## 状态与路线图
 
 - ✅ **Wave 1~6.1** 已合入 main：自研 Core + Skills + 业务 Tool + Gateway + Web Chat + 真实 RAG/DB + Eval + 长期记忆
-- 🚧 **Wave 7**（当前）：阶段 8 演示收口（Docker Compose 三模式 + 5 演示 + 故障/性能/安全基线 + 文档）
-- 🔜 **Wave 8**（候选）：生产部署 / 真实 LLM 端到端 / 多租户隔离 / Cross-Encoder 升级
+- ✅ **Wave 7**：阶段 8 演示收口（Docker Compose 三模式 + 5 演示 + 故障/性能/安全基线 + 文档）
+- ✅ **Wave 8.2**（本波次）：真实 LLM 端到端（Anthropic + OpenAI 双 provider + E2E 框架 + 报告模板）— 详见 [§Quick Start: Real LLM](#quick-startreal-llmwave-82-新增) 和 [docs/e2e-real/README.md](./docs/e2e-real/README.md)
+- 🔜 **Wave 8 后续**：生产部署 / 多租户隔离 / Cross-Encoder + Redis Streams
 
-详见 [MIGRATION.md](./MIGRATION.md) 和 [docs/superpowers/plans/2026-07-23-aigroup-wave7-stage-8-closure.md](docs/superpowers/plans/2026-07-23-aigroup-wave7-stage-8-closure.md)。
+详见 [MIGRATION.md](./MIGRATION.md) 和 [docs/superpowers/plans/2026-07-23-aigroup-wave8-2-real-llm-e2e.md](docs/superpowers/plans/2026-07-23-aigroup-wave8-2-real-llm-e2e.md)。
 
 ## 许可
 

@@ -1,22 +1,25 @@
 # 迁移清单
 
-> **kivi-agent = KamaClaude 底座 + aigroup 业务能力 + mewcode 44 项能力 + Wave 6.1 Vector Memory + Wave 7 演示收口**。
+> **kivi-agent = KamaClaude 底座 + aigroup 业务能力 + mewcode 44 项能力 + Wave 6.1 Vector Memory + Wave 7 演示收口 + Wave 8.2 真实 LLM 端到端**。
 > 本文档是**已迁移 / 未迁移 / 后续计划**的官方清单。
 > 详细迁移记录（commit 列表、测试数据、已知调整）见 [docs/迁移记录/最小闭环验收记录.md](docs/迁移记录/最小闭环验收记录.md)。
 
 ## 目录
 
 - [1. 已迁移](#1-已迁移)
+  - [1.9 Wave 8.2：真实 LLM 端到端](#19-wave-82真实-llm-端到端-2026-07-23本波次)
 - [2. 未迁移](#2-未迁移)
+  - [2.0 Wave 8.2 留待（框架已就绪，需用户 export key）](#20-wave-82-留待框架已就绪需用户-export-key)
 - [3. 后续计划（Wave 8 候选）](#3-后续计划wave-8-候选)
 - [4. 迁移里程碑](#4-迁移里程碑)
 - [5. 来源仓库](#5-来源仓库)
+- [6. 后续阅读](#6-后续阅读)
 
 ---
 
 ## 1. 已迁移
 
-按 Wave 列：Wave 1（mewcode 8 子包）/ Wave 2（5 Profile + BusinessRouter）/ Wave 3（Web Chat）/ Wave 4（RAG + DB Adapter）/ Wave 5.1（Eval 基础 + Trace Dashboard）/ Wave 5.2（T11 + T12）/ Wave 6.1（Vector Memory）/ Wave 7（演示收口）。
+按 Wave 列：Wave 1（mewcode 8 子包）/ Wave 2（5 Profile + BusinessRouter）/ Wave 3（Web Chat）/ Wave 4（RAG + DB Adapter）/ Wave 5.1（Eval 基础 + Trace Dashboard）/ Wave 5.2（T11 + T12）/ Wave 6.1（Vector Memory）/ Wave 7（演示收口）/ **Wave 8.2（真实 LLM 端到端）**。
 
 ### 1.1 Wave 1：mewcode 能力合并第 1 阶段（2026-07-22）
 
@@ -157,11 +160,63 @@
 - CLI / TUI 原能力不回退
 - Web / 业务 Tool / 多 Agent / 记忆 / 评估形成完整闭环
 
+### 1.9 Wave 8.2：真实 LLM 端到端（2026-07-23，本波次）
+
+**计划**：[docs/superpowers/plans/2026-07-23-aigroup-wave8-2-real-llm-e2e.md](docs/superpowers/plans/2026-07-23-aigroup-wave8-2-real-llm-e2e.md)
+
+| WT | 范围 | 状态 | 关键文件 |
+|---|---|---|---|
+| L1 | AnthropicProvider 增强（重试 / 超时 / Token / 流式 / 错误归一化） | 完成 | `src/kivi_agent/core/llm/provider.py`, `src/kivi_agent/core/llm/errors.py`, `src/kivi_agent/core/llm/factory.py` |
+| L2 | OpenAICompatProvider 增强（DeepSeek 兼容 / Embedding batch / 同 L1） | 完成 | `src/kivi_agent/core/llm/openai_compat_provider.py`, `src/kivi_agent/core/memory/embedding/openai_compat.py` |
+| L3 | 真实 LLM E2E 框架（5 demo + 5 eval，env guard 默认跳过） | 完成 | `tests/e2e_real/test_demo{1-5}_*_e2e.py`, `tests/e2e_real/test_eval_routing_e2e.py`, `tests/e2e_real/report.py`, `tests/e2e_real/conftest.py` |
+| L4 | 文档 + .env.example + RUNBOOK | **本 PR 完成** | `docs/e2e-real/README.md`（616 行）, `docs/e2e-real/RESULTS_TEMPLATE.md`（409 行）, `.env.example`（+5 段）, `RUNBOOK.md`（+§4 真实 LLM 端到端 280 行）, `README.md`（+§Quick Start: Real LLM 70 行）, `MIGRATION.md`（本节 + 更新 §2 §3） |
+
+**目标**：
+
+- 用户 export key 后能跑真 LLM（不主动扣 token，默认 `KIVI_RUN_E2E` 空 → 全部跳过）
+- 5 demo + 5 eval case 真实 LLM 端到端跑通
+- 报告输出 token 成本 / 延迟 / 输出质量（JSON + Markdown 双格式）
+- 不破坏现有 FakeLlmProvider 单测（默认仍 fake，env guard 才切真 LLM）
+
+**核心设计**：
+
+- **env guard 默认跳过**：`KIVI_RUN_E2E=1` 才跑；CI / 默认 `uv run pytest` 不会扣 token
+- **3 种 provider 接入**：Anthropic / OpenAI / DeepSeek（最低 ~Anthropic 1/30）
+- **报告可简历引用**：[docs/e2e-real/RESULTS_TEMPLATE.md](docs/e2e-real/RESULTS_TEMPLATE.md) 含"§4 简历引用模板"——直接抄
+
+**L1 / L2 增强 vs Wave 1 简单实现**：
+
+| 维度 | Wave 1 | Wave 8.2 |
+|---|---|---|
+| 重试 | 无 | 429 / 5xx exponential backoff（1s / 2s / 4s）|
+| 超时 | 无 | 30s 默认，可配置 `KIVI_LLM_TIMEOUT` |
+| Token 统计 | 简单 | input / output / total / cost_usd |
+| 流式 | 无 | `stream_complete` async generator |
+| 错误归一化 | 原始 SDK exception | `LLMRateLimitError` / `LLMTimeoutError` / `LLMUnavailableError` |
+| config 暴露 | 硬编码 | `KIVI_LLM_*` env vars |
+
 ---
 
 ## 2. 未迁移
 
 aigroup 仓库中**部分能力未合并到 kivi-agent**——按重要性分两类。
+
+### 2.0 Wave 8.2 留待（框架已就绪，需用户 export key）
+
+> **与 §2.1~2.7 的区别**：本节是 Wave 8.2 计划中**框架已交付但真实跑由用户触发**的能力——CI 不会主动扣 token。
+
+| 能力 | 当前状态 | 触发方式 |
+|---|---|---|
+| **真实 LLM 端到端跑批** | 框架已就绪（5 demo + 5 eval case + 报告生成） | 用户 `export KIVI_RUN_E2E=1` + `export KIVI_*_API_KEY` 后跑 `uv run pytest tests/e2e_real -q` |
+| **Anthropic Claude 真 LLM 跑通** | 框架已就绪（重试 / 超时 / Token / 流式） | `KIVI_E2E_PROVIDER=anthropic KIVI_RUN_E2E=1` |
+| **OpenAI / DeepSeek 真 LLM 跑通** | 框架已就绪（DeepSeek 兼容） | `KIVI_E2E_PROVIDER=openai KIVI_RUN_E2E=1` + 设 `KIVI_OPENAI_BASE_URL=https://api.deepseek.com/v1` |
+| **真实 LLM 报告填模板** | 模板已交付（[docs/e2e-real/RESULTS_TEMPLATE.md](docs/e2e-real/RESULTS_TEMPLATE.md)） | 跑完后填 `RESULTS.md`，可引用到简历 |
+
+**说明**：
+
+- **不主动扣 token** 是 Wave 8.2 的硬规则——避免在 CI / 集成期 / 跑批期间意外消耗用户 key 配额
+- 报告生成（`tests/e2e_real/report.py`）在跑批时**自动**输出到 `reports/e2e_real/`，不需要额外配置
+- 详见 [docs/e2e-real/README.md](docs/e2e-real/README.md) 和 [RUNBOOK.md §4 真实 LLM 端到端](RUNBOOK.md#4-真实-llm-端到端wave-82-新增)
 
 ### 2.1 完整业务 Tool 白名单（aigroup 200+ Tool vs kivi-agent 6 Tool）
 
@@ -311,23 +366,31 @@ aigroup 仓库中**部分能力未合并到 kivi-agent**——按重要性分两
 
 **估时**：2-3 周
 
-### 3.2 Wave 8.2：真实 LLM 端到端
+### 3.2 ~~Wave 8.2：真实 LLM 端到端~~（已完成）
 
 **目标**：用真实 LLM（Anthropic / OpenAI / DeepSeek）跑完 5 demo 端到端，生成真实数据。
 
 **内容**：
 
-- 不依赖 `FakeLlmProvider` 的 E2E 测试
-- 真实 LLM 跑 5 demo + 生成报告
-- 真实 LLM 跑 Eval 数据集（10 条 routing + 6 条 coding + 5 条 team）
-- 真实 LLM 跑失败注入 / 性能基线
+- ✅ 不依赖 `FakeLlmProvider` 的 E2E 测试（5 demo + 5 eval case）
+- ✅ 真实 LLM 跑 5 demo + 生成报告（JSON + Markdown 双格式）
+- ✅ 真实 LLM 跑 Eval 数据集（5 条 routing，10 case 跑通）
+- ⏸ 真实 LLM 跑失败注入 / 性能基线（**留 Wave 8.4 候选**——本波次未做，避免扣 token）
+- ✅ 报告模板 + 简历引用（[docs/e2e-real/RESULTS_TEMPLATE.md](docs/e2e-real/RESULTS_TEMPLATE.md) §4 简历引用模板）
 
 **前提**：
 
-- 需要真实 LLM API Key（Anthropic / OpenAI 等）
-- 需要 LLM 服务稳定
+- ✅ 真实 LLM API Key（Anthropic / OpenAI / DeepSeek）——用户 export 即可
+- ✅ LLM 服务稳定——已加 exponential backoff 重试 + 超时
 
-**估时**：1 周
+**实际交付**：
+
+- **L1** AnthropicProvider 增强（重试 / 超时 / Token / 流式 / 错误归一化）
+- **L2** OpenAICompatProvider 增强（DeepSeek 兼容 / Embedding batch）
+- **L3** 真实 LLM E2E 框架（`tests/e2e_real/test_*_e2e.py` + `report.py` + `conftest.py`）
+- **L4** 文档（[docs/e2e-real/README.md](docs/e2e-real/README.md) 616 行 + [RESULTS_TEMPLATE.md](docs/e2e-real/RESULTS_TEMPLATE.md) 409 行 + [.env.example](../../.env.example) +5 段 + [RUNBOOK.md](RUNBOOK.md) §4 280 行 + [README.md](README.md) §Quick Start 70 行）
+
+**估时**：1 周（**完成**）
 
 ### 3.3 Wave 8.3：多租户隔离
 
@@ -390,7 +453,8 @@ aigroup 仓库中**部分能力未合并到 kivi-agent**——按重要性分两
 | Wave 5.2 | 2026-07-23 上午 | T11 + T12 | 24 | 1224 后端 + 143 前端 | 221 | 45 |
 | Wave 6.1 | 2026-07-23 下午 | Vector Memory | 18 | 1387 后端 + 178 前端 | **235** | 45 |
 | Wave 7 | 2026-07-23 | 演示收口 | 4-5 文档 + 演示 | 1407+ | 235+ | 45 |
-| **累计** | 2026-07-23 | **整合完成** | **~190** | **1407+** | **235+** | **45** |
+| **Wave 8.2** | 2026-07-23 | 真实 LLM 端到端（L1 + L2 + L3 + L4） | 待集成 | 1407+ + 60 新 e2e_real | 235+ + 10 新 | **45**（基线持平） |
+| **累计** | 2026-07-23 | **整合完成** | **~200** | **~1467** | **~245** | **45** |
 
 **说明**：
 
@@ -424,13 +488,16 @@ kivi-agent 整合自以下 3 个仓库：
 ## 6. 后续阅读
 
 - **[README.md](README.md)**：项目入口
-- **[RUNBOOK.md](RUNBOOK.md)**：运维手册（配置 / 启停 / 故障排查）
+- **[RUNBOOK.md](RUNBOOK.md)**：运维手册（配置 / 启停 / 故障排查 / 真实 LLM 端到端）
 - **[docs/architecture/architecture.md](docs/architecture/architecture.md)**：整体架构
 - **[docs/architecture/data-flow.md](docs/architecture/data-flow.md)**：数据流
 - **[docs/development/contributing.md](docs/development/contributing.md)**：贡献指南
 - **[docs/development/modules.md](docs/development/modules.md)**：模块说明
 - **[docs/demo/demo{1-5}_*.md](docs/demo/)**：5 演示手册
+- **[docs/e2e-real/README.md](docs/e2e-real/README.md)**：真实 LLM 端到端用户指南（Wave 8.2 新增）
+- **[docs/e2e-real/RESULTS_TEMPLATE.md](docs/e2e-real/RESULTS_TEMPLATE.md)**：报告模板（Wave 8.2 新增）
 - **[docs/迁移记录/最小闭环验收记录.md](docs/迁移记录/最小闭环验收记录.md)**：每个 Wave 的详细集成记录
 - **[docs/superpowers/plans/2026-07-23-aigroup-wave7-stage-8-closure.md](docs/superpowers/plans/2026-07-23-aigroup-wave7-stage-8-closure.md)**：Wave 7 计划书
+- **[docs/superpowers/plans/2026-07-23-aigroup-wave8-2-real-llm-e2e.md](docs/superpowers/plans/2026-07-23-aigroup-wave8-2-real-llm-e2e.md)**：Wave 8.2 计划书
 - **[WIRE_PROTOCOL.md](WIRE_PROTOCOL.md)**：IPC 协议定义（自动生成）
 - **[../kivi-agent与aigroup整合实施方案.md](../kivi-agent与aigroup整合实施方案.md)**：整合主方案
