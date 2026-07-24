@@ -16,13 +16,9 @@ from kivi_agent.core.bus.events import LlmModelSelectedEvent, LlmTokenEvent, Llm
 from kivi_agent.core.config import KamaConfig
 from kivi_agent.core.events.bus import EventBus
 from kivi_agent.core.llm.base import LLMProvider
+from kivi_agent.core.llm.errors import CompletionResult, StreamChunk, TokenUsage
 from kivi_agent.core.llm.openai_compat_provider import OpenAICompatProvider
-from kivi_agent.core.llm.provider import (
-    AnthropicProvider,
-    CompletionResult,
-    StreamChunk,
-    TokenUsage,
-)
+from kivi_agent.core.llm.provider import AnthropicProvider
 from kivi_agent.core.llm.types import LlmResponse
 
 
@@ -107,14 +103,12 @@ class _FakeLLMProvider:
         self,
         messages: list[dict[str, object]],
     ) -> Any:
+        yield StreamChunk(content=f"[fake:{self._model}] ")
+        yield StreamChunk(content="no API key configured")
         yield StreamChunk(
-            delta=f"[fake:{self._model}] ", usage=None, done=False
-        )
-        yield StreamChunk(delta="no API key configured", usage=None, done=False)
-        yield StreamChunk(
-            delta="",
+            content="",
+            finish_reason="stop",
             usage=TokenUsage(input_tokens=0, output_tokens=0),
-            done=True,
         )
 
 
@@ -184,7 +178,7 @@ def _create_openai_provider(
         max_retries=max_retries,
         temperature=temperature,
         max_tokens=max_tokens,
-        client=client,  # type: ignore[arg-type]
+        client=client,
     )
 
 
