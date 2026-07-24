@@ -217,8 +217,10 @@ def create_provider(
 
     if provider_name == "openai_compat":
         # 委托给 L2 增强版 _create_openai_provider（DeepSeek 兼容 + 完整 env vars）
+        # 注意：只传显式 model，不传 default_model（让 _create_openai_provider 自己读
+        # KIVI_OPENAI_MODEL，保留 KIVI_LLM_DEFAULT_MODEL 不污染 openai 路径）
         try:
-            return _create_openai_provider(model=model or default_model)
+            return _create_openai_provider(model=model)
         except ValueError:
             # 缺 key 时回退 fake（保留 Wave 1 行为）
             return _FakeLLMProvider(model=default_model)

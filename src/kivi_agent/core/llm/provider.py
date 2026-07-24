@@ -88,10 +88,9 @@ def _to_completion_result(response: Any, fallback_model: str) -> CompletionResul
                 )
             )
     usage_obj = response.usage
-    usage = TokenUsage(
-        input_tokens=int(getattr(usage_obj, "input_tokens", 0) or 0),
-        output_tokens=int(getattr(usage_obj, "output_tokens", 0) or 0),
-    )
+    in_t = int(getattr(usage_obj, "input_tokens", 0) or 0)
+    out_t = int(getattr(usage_obj, "output_tokens", 0) or 0)
+    usage = TokenUsage(input_tokens=in_t, output_tokens=out_t, total_tokens=in_t + out_t)
     return CompletionResult(
         content="".join(content_parts),
         tool_calls=tool_calls,
@@ -322,12 +321,13 @@ class AnthropicProvider:
                         yield StreamChunk(content=text)
                     final = await stream.get_final_message()
                     usage_obj = final.usage
+                    in_t = int(getattr(usage_obj, "input_tokens", 0) or 0)
+                    out_t = int(getattr(usage_obj, "output_tokens", 0) or 0)
                     yield StreamChunk(
                         content="",
                         finish_reason="stop",
                         usage=TokenUsage(
-                            input_tokens=int(getattr(usage_obj, "input_tokens", 0) or 0),
-                            output_tokens=int(getattr(usage_obj, "output_tokens", 0) or 0),
+                            input_tokens=in_t, output_tokens=out_t, total_tokens=in_t + out_t
                         ),
                     )
                     return

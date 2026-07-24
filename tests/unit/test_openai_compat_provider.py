@@ -12,7 +12,9 @@
 from __future__ import annotations
 
 import json
+import os
 from typing import Any
+from unittest.mock import patch
 
 import httpx
 import pytest
@@ -28,6 +30,7 @@ from kivi_agent.core.llm.errors import (
 )
 from kivi_agent.core.llm.factory import create_provider
 from kivi_agent.core.llm.openai_compat_provider import OpenAICompatProvider
+from kivi_agent.core.llm.provider import AnthropicProvider
 
 
 # ---- 测试辅助：构造一个 mock httpx.AsyncClient ----
@@ -482,51 +485,48 @@ async def test_complete_exhausts_retries_and_raises() -> None:
 
 
 # ========== 工厂 / env vars ==========
-# 功能：create_provider("openai") 读 KIVI_OPENAI_API_KEY 构造 OpenAICompatProvider
+# 功能：create_provider("openai_compat") 读 KIVI_OPENAI_API_KEY 构造 OpenAICompatProvider
 # 设计：monkeypatch 3 个 KIVI_OPENAI_* env，断言返回的 provider 是 OpenAICompatProvider 且字段正确
+# 注：集成版用 "openai_compat" 作为 provider name（与 KamaConfig 旧接口一致）
 def test_create_provider_openai_reads_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("KIVI_OPENAI_API_KEY", "sk-test-123")
     monkeypatch.setenv("KIVI_OPENAI_BASE_URL", "https://api.deepseek.com/v1")
     monkeypatch.setenv("KIVI_OPENAI_MODEL", "deepseek-chat")
     monkeypatch.delenv("KIVI_LLM_TIMEOUT", raising=False)
     monkeypatch.delenv("KIVI_LLM_MAX_RETRIES", raising=False)
-    provider = create_provider("openai")
+    provider = create_provider("openai_compat")
     assert isinstance(provider, OpenAICompatProvider)
     assert provider._model == "deepseek-chat"
     assert provider._base_url == "https://api.deepseek.com/v1"
     assert provider._api_key == "sk-test-123"
 
 
-# 功能：create_provider(None) 自动检测：有 KIVI_OPENAI_API_KEY 选 openai
-# 设计：monkeypatch 设 KIVI_OPENAI_API_KEY，断言返回 OpenAICompatProvider
-def test_create_provider_auto_detects_openai(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("KIVI_OPENAI_API_KEY", "sk-auto")
-    monkeypatch.delenv("KIVI_ANTHROPIC_API_KEY", raising=False)
-    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
-    provider = create_provider(None)
-    assert isinstance(provider, OpenAICompatProvider)
-
-
-# 功能：create_provider("openai") 缺 KIVI_OPENAI_API_KEY 时抛 ValueError
-# 设计：清空所有 API key env，断言 ValueError
+# 功能：create_provider("openai_compat") 缺 KIVI_OPENAI_API_KEY 时回退 fake（集成版设计：保留 Wave 1 行为）
+# 设计：清空所有 API key env，断言返回的是 _FakeLLMProvider（不是 ValueError）
 def test_create_provider_openai_missing_key_raises(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("KIVI_OPENAI_API_KEY", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    with pytest.raises(ValueError, match="KIVI_OPENAI_API_KEY"):
-        create_provider("openai")
+    monkeypatch.delenv("KIVI_ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    provider = create_provider("openai_compat")
+    # 集成版：缺 key 时回退到 _FakeLLMProvider（不抛错，保证 Wave 1 行为不破）
+    from kivi_agent.core.llm.factory import _FakeLLMProvider
+    assert isinstance(provider, _FakeLLMProvider)
 
 
-# 功能：create_provider("anthropic") 在 L2 worktree 内抛 NotImplementedError（由 L1 集成）
-# 设计：断言 NotImplementedError 而不是默写 anthropic 实现
-def test_create_provider_anthropic_not_implemented_in_l2() -> None:
-    with pytest.raises(NotImplementedError, match="WT-L1"):
-        create_provider("anthropic")
+# 功能：create_provider("anthropic") 在集成版有完整实现：有 KIVI_ANTHROPIC_API_KEY 时构造 AnthropicProvider
+# 设计：monkeypatch KIVI_ANTHROPIC_API_KEY，断言返回 AnthropicProvider
+def test_create_provider_anthropic_implemented() -> None:
+    with patch.dict(os.environ, {"KIVI_ANTHROPIC_API_KEY": "sk-ant-test"}):
+        provider = create_provider("anthropic")
+    assert isinstance(provider, AnthropicProvider)
+    assert provider._model  # 验证 model 字段被设置
 
 
 # 功能：create_provider("unknown") 抛 ValueError 列出支持的名字
-# 设计：传入 "xyz"，断言 ValueError 包含 "openai" "anthropic" "fake"
+# 设计：传入 "xyz"，断言 ValueError 包含 "Unknown provider"
 def test_create_provider_unknown_name_raises() -> None:
-    with pytest.raises(ValueError, match="openai"):
+    with pytest.raises(ValueError, match="Unknown provider"):
         create_provider("xyz")
 
 

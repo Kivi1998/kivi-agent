@@ -125,13 +125,13 @@ class _FakeStream:
 
 # 功能：验证 TokenUsage.total_tokens 等于 input + output
 def test_token_usage_total_property() -> None:
-    u = TokenUsage(input_tokens=10, output_tokens=5)
+    u = TokenUsage(input_tokens=10, output_tokens=5, total_tokens=15)
     assert u.total_tokens == 15
 
 
 # 功能：验证零 token 时 total 也为零
 def test_token_usage_total_zero() -> None:
-    u = TokenUsage(input_tokens=0, output_tokens=0)
+    u = TokenUsage(input_tokens=0, output_tokens=0, total_tokens=0)
     assert u.total_tokens == 0
 
 
@@ -218,9 +218,9 @@ async def test_complete_with_tool_use() -> None:
     assert result.stop_reason == "tool_use"
     assert len(result.tool_calls) == 1
     tc = result.tool_calls[0]
-    assert tc["id"] == "toolu_01"
-    assert tc["name"] == "read_file"
-    assert tc["input"] == {"path": "README.md"}
+    assert tc.id == "toolu_01"
+    assert tc.name == "read_file"
+    assert tc.arguments == {"path": "README.md"}
 
 
 # 功能：验证 complete() 把 model / max_tokens / temperature 透传给 client
@@ -448,11 +448,11 @@ async def test_stream_complete_yields_text_chunks_in_order() -> None:
         messages=[{"role": "user", "content": "x"}]
     ):
         chunks.append(c)
-    assert [c.delta for c in chunks] == ["He", "llo", "!", ""]
+    assert [c.content for c in chunks] == ["He", "llo", "!", ""]
     assert all(c.usage is None for c in chunks[:-1])
 
 
-# 功能：验证 stream_complete() 最后一个 chunk 携带 usage 且 done=True
+# 功能：验证 stream_complete() 最后一个 chunk 携带 usage 且 finish_reason=stop
 async def test_stream_complete_final_chunk_has_usage_and_done() -> None:
     final = _make_response(input_tokens=42, output_tokens=11)
     client = MagicMock()
@@ -464,7 +464,7 @@ async def test_stream_complete_final_chunk_has_usage_and_done() -> None:
     ):
         chunks.append(c)
     last = chunks[-1]
-    assert last.done is True
+    assert last.finish_reason == "stop"
     assert last.usage is not None
     assert last.usage.input_tokens == 42
     assert last.usage.output_tokens == 11
@@ -482,8 +482,8 @@ async def test_stream_complete_empty_text_yields_only_final() -> None:
     ):
         chunks.append(c)
     assert len(chunks) == 1
-    assert chunks[0].done is True
-    assert chunks[0].delta == ""
+    assert chunks[0].finish_reason == "stop"
+    assert chunks[0].content == ""
 
 
 # 功能：验证 stream_complete() 在第一次 429 后重试，第二次成功
@@ -512,8 +512,8 @@ async def test_stream_complete_retries_on_429(
         messages=[{"role": "user", "content": "x"}]
     ):
         chunks.append(c)
-    assert "".join(c.delta for c in chunks[:-1]) == "recovered"
-    assert chunks[-1].done is True
+    assert "".join(c.content for c in chunks[:-1]) == "recovered"
+    assert chunks[-1].finish_reason == "stop"
     assert call_count["n"] == 2
 
 
