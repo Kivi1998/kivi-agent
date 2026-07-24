@@ -160,6 +160,7 @@ def _create_openai_provider(
         raise ValueError(
             "OpenAI provider requires KIVI_OPENAI_API_KEY (or OPENAI_API_KEY) env var"
         )
+    # timeout / max_retries 允许 env 覆盖（与 KIVI_LLM_* 对齐）
     if timeout is None:
         env_timeout = os.environ.get("KIVI_LLM_TIMEOUT")
         timeout = float(env_timeout) if env_timeout else 30.0
